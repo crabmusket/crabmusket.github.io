@@ -1,0 +1,128 @@
+<!doctype html><html lang=en>
+<head>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="ie=edge">
+<title>Monster Mash: entry #1 &mdash; the crab & musket</title>
+<meta name=description content>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<link href=/css/main.css rel=stylesheet>
+<meta property="og:url" content="/blog/monster-mash-entry-1/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Monster Mash: entry #1">
+<meta property="article:published_time" content="2014-07-01T00:00:00+00:00Z">
+<meta name=twitter:card content="summary">
+<meta name=twitter:creator content="@crabmusket">
+<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
+<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
+<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
+</head>
+<body>
+<div class=container>
+<a href=/blog>
+<h1 class=site-title>
+<span class=site-title__prefix>the</span>
+crab & musket
+</h1>
+</a>
+<hr>
+<div class=content>
+<div class=post-header>
+<h2 class=post-header__title>Monster Mash: entry #1</h2>
+<span class=post-header__date>July 1, 2014</span>
+</div>
+<div class=post>
+<p>Welcome one, welcome all to my second <a href=http://itch.io/jams/monster-mash>Monster Mash</a> jam log.
+(Here&rsquo;s <a href=../../2014-06-29/monster-mash-entry-0/>the first one</a>.)
+I&rsquo;ve got two days to summarise, since I didn&rsquo;t do an awful lot of work yesterday.
+But, I:</p>
+<ul>
+<li>
+<p>Made a third-person camera controller with relative movement to the camera, all in script!
+This is an ugly hack and one I don&rsquo;t want to repeat.
+The main challenge was the maths involved in converting the local direction we want to travel (e.g., &lsquo;away from the camera&rsquo;) into absolute coordinates to feed to the player move input.
+And then realising that I needed to update that variable regularly, because the direction the player would be moving often changes constantly (when moving sideways relative to the camera).
+At the moment, here&rsquo;s the guts of it:</p>
+<pre><code>function updateMovement() {
+   %axes = getCameraAxes();
+   %front = getField(%axes, 0);
+   %right = getField(%axes, 1);
+
+   %moveDir = VectorAdd(VectorScale(%right, $right - $left),
+                        VectorScale(%front, $forward - $backward));
+   $mvRightAction = getWord(%moveDir, 0);
+   $mvForwardAction = getWord(%moveDir, 1);
+}
+</code></pre><p>It&rsquo;s fairly simple after all that effort!
+Note that I had to write my own <code>getCameraAxes</code> function because the camera transform doesn&rsquo;t take object tracking into account.
+The global variables <code>$forward</code> and friends represent the states of the WASD keys.
+Still to be done: controller input!</p>
+</li>
+<li>
+<p>I also made a spring physics system to keep the camera following the player.
+Currently it just uses springs and no dampers, so it kind of sucks, but it works.
+It&rsquo;s also all in scripts, and it&rsquo;s also something I never want to do again.
+That said, I&rsquo;m thinking of generalising the system so that the islands and shorelines can act as springs as well, keeping the camera aligned more usefully (since at the moment, there&rsquo;s no way to manually rotate the camera, which sucks a bit).
+Again, here is is in full, just so you can share how painful vector maths is in TorqueScript:</p>
+<pre><code>function updateCamera() {
+   // Diff vector in x, y only, since we don't care about camera height.
+   %diff = getWords(VectorSub(TheMonster.getPosition(), TheCamera.getPosition()), 0, 1) SPC 0;
+   %dist = VectorLen(%diff);
+   %diff = VectorNormalize(%diff);
+
+   // Attractive/repulsive force from monster.
+   if(%dist &lt; 18) {
+      TheCamera.camForce = VectorScale(%diff, -1 * (18 - %dist));
+   } else if(%dist &gt; 22) {
+      TheCamera.camForce = VectorScale(%diff, %dist - 22);
+   }
+
+   // Drag.
+   TheCamera.camForce = VectorAdd(TheCamera.camForce, VectorScale(TheCamera.camVel, -1));
+
+   // Physics!
+   %position = VectorAdd(TheCamera.getPosition(), VectorScale(TheCamera.camVel, 1 / $MovementHz));
+   TheCamera.setTransform(%position SPC getWords(TheCamera.getTransform(), 3, 6));
+   TheCamera.camVel = VectorAdd(TheCamera.camVel, VectorScale(TheCamera.camForce, 1/50));
+}
+</code></pre></li>
+</ul>
+<p>And today, I:</p>
+<ul>
+<li>Fiddled a lot with movement physics.
+I discovered a <a href=http://www.garagegames.com/community/forums/viewthread/138093>big hooting bug</a> that was screwing up character movement underwater.
+It wasn&rsquo;t major, just meant that the chap would always accelerate to full speed instantly.
+Which, you know, I could deal with, but I just wanted a bit of smoothness to the movement.</li>
+<li>Added collision to the boardwalks, in order to set up a navmesh, which you can see below.
+Apparently, my efforts intended to make the trees and boardwalks un-collide-able didn&rsquo;t work.
+Which I should probably look into, as all those meshes should be hurting performance&mldr;</li>
+</ul>
+<p><img src=http://imgur.com/KmodSQF.png alt="Navmesh on island"></p>
+<ul>
+<li>Made the water not-see-through, thanks to Azaezel pointing out the underwater fog settings. Hoorah!</li>
+<li>Made the shadows less rough, thanks to Steve for sharing his sun settings.</li>
+<li>Another bright suggestion from the #GarageGames IRC channel was to add more (by which I think they meant <em>any</em>) goats.
+I&rsquo;m very tempted&mldr; but it will probably have to wait until after the jam.</li>
+<li>Also, thanks to that bunch, the game has a name: &ldquo;Loch Ness Monster Simulator 2014&rdquo;.
+It has a ring to it.</li>
+<li>Added colours!
+After struggling yesterday and settling for a single-colour palette, I played around with the stock colours Lukas <a href=https://github.com/GarageGames/Torque3D/pull/613>added</a> from T2D, and found some that I liked.
+This was much easier than fiddling with RGB codes!
+Here&rsquo;s what it looks like now:</li>
+</ul>
+<p><img src=http://imgur.com/LYCx6y7.png alt="Lakeside with tourists"></p>
+<ul>
+<li>Yes, those are tourists you can see chilling by the lake.
+And an umbrella, which I thought was cute.
+They&rsquo;re basically just blob-shapes, but I added arms so you can tell which direction they&rsquo;re facing.
+I think the park rangers will basically just be this mesh, but with hats.
+They&rsquo;ll tranquilise you with&mldr; I dunno, mind powers or something.
+Anyway, they have no AI yet, but that&rsquo;s on the agenda for tomorrow&mldr;</li>
+</ul>
+<p>Till next time!</p>
+</div>
+<hr>
+<p class=site-subtitle>fin</p>
+</div>
+</div>
+</body>
+</html>

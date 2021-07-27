@@ -1,0 +1,90 @@
+<!doctype html><html lang=en>
+<head>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="ie=edge">
+<title>Micro-tutorial: liftM by accident &mdash; the crab & musket</title>
+<meta name=description content>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<link href=/css/main.css rel=stylesheet>
+<meta property="og:url" content="/blog/liftm-by-accident/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Micro-tutorial: liftM by accident">
+<meta property="article:published_time" content="2013-11-28T00:00:00+00:00Z">
+<meta name=twitter:card content="summary">
+<meta name=twitter:creator content="@crabmusket">
+<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
+<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
+<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
+</head>
+<body>
+<div class=container>
+<a href=/blog>
+<h1 class=site-title>
+<span class=site-title__prefix>the</span>
+crab & musket
+</h1>
+</a>
+<hr>
+<div class=content>
+<div class=post-header>
+<h2 class=post-header__title>Micro-tutorial: liftM by accident</h2>
+<span class=post-header__date>November 28, 2013</span>
+</div>
+<div class=post>
+<p>As a relatively new Haskeller, I&rsquo;ve been mystified at the <code>lift</code> family of functions.
+They idea that they promote a pure function to do some computation in a monad makes sense, but I&rsquo;ve never found uses for them in my code, and I think it&rsquo;s because I don&rsquo;t fully understand them.
+That changed yesterday, so I hope that my process will help other people in my position come to terms with <code>liftM</code>.</p>
+<p>(Beware: there are probably lots of technically incorrect ways to describe monads and their operations below!
+I&rsquo;d appreciate being corrected on them!)</p>
+<p>I recently wrote a <a href=https://gist.github.com/eightyeight/5657087>toy program</a> that had to read matrices from user input.
+I first wrote it using this pattern:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=nf>str</span> <span class=ow>&lt;-</span> <span class=n>getLine</span>
+<span class=kr>let</span> <span class=n>mat</span> <span class=ow>=</span> <span class=n>readMatrix</span> <span class=n>str</span>
+</code></pre></div><p>Of course, <code>getLine</code> is from the Prelude (and has type <code>IO String</code>).
+<code>readMatrix</code> is from <a href=http://hackage.haskell.org/package/hmatrix>hmatrix</a>.
+Its purpose is to read a <code>String</code> and construct a <code>Matrix Double</code> from it - which is represented by the type <code>String -> Matrix Double</code>.
+So I&rsquo;m sure anybody reading this is fairly clear on why the code does what it does.
+<code>strMat &lt;- getLine</code> &ldquo;unboxes&rdquo; the value of <code>getLine</code>, allowing us to use it as a pure <code>String</code> rather than an <code>IO String</code>, so we can give it to <code>readMatrix</code> to get a pure matrix value.</p>
+<p>This pattern annoyed me slightly, since I would never make use of <code>str</code> again.
+I knew that, this being Haskell, there must me <em>some</em> way to simplify the two-line pair into a single line (or probably a single function call with lots of punctuation!).
+Fetching a value in a monad and operating on it with a pure function sounded like it should be a fairly common task.</p>
+<p>The first step was to get rid of the <code>do</code> notation and see the actual underlying function calls.
+According to <a href=http://en.wikibooks.org/wiki/Haskell/do_Notation>the wiki</a>, the <em>bind</em> operator (<code>>>=</code>) is the result of desugaring the <code>&lt;-</code> syntax.
+Bind takes a monadic value on the left-hand side, &ldquo;unboxes&rdquo; it, and feeds it to a monadic function on the right-hand side.
+So I could rewrite my two lines as one line with a bind:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=nf>mat</span> <span class=ow>&lt;-</span> <span class=n>getLine</span> <span class=o>&gt;&gt;=</span> <span class=nf>\</span><span class=n>x</span> <span class=ow>-&gt;</span> <span class=n>return</span> <span class=p>(</span><span class=n>readMatrix</span> <span class=n>x</span><span class=p>)</span>
+</code></pre></div><p>Since binding is a monadic operation, you can&rsquo;t just bind <code>getLine</code> directly to a pure function (like, <code>getLine >>= readMatrix</code>).
+The whole expression must return some monadic value, which we then purify using the <code>&lt;-</code> notation after the bind has happened.</p>
+<p>So I managed to condense my two lines into one line, but it&rsquo;s still fairly ugly, with all that line noise in there.
+We can at least get rid of the lambda by using a <a href=http://www.haskell.org/haskellwiki/Pointfree>pointfree</a> style:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=nf>mat</span> <span class=ow>&lt;-</span> <span class=n>getLine</span> <span class=o>&gt;&gt;=</span> <span class=n>return</span> <span class=o>.</span> <span class=n>readMatrix</span>
+</code></pre></div><p>But this still smelled like boilerplate.
+Surely, I told myself, surely people need to perform some impure/monadic function, pass it to a pure function, and get an impure result back which they can purify by binding it.
+In fact, I could write a little utility function for it myself:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=nf>doSomething</span> <span class=n>impureFn</span> <span class=n>pureFn</span> <span class=ow>=</span> <span class=n>impureFn</span> <span class=o>&gt;&gt;=</span> <span class=n>return</span> <span class=o>.</span> <span class=n>pureFn</span>
+</code></pre></div><p>And now, I could rewrite my input line like this:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=nf>mat</span> <span class=ow>&lt;-</span> <span class=n>doSomething</span> <span class=n>getLine</span> <span class=n>readMatrix</span>
+</code></pre></div><p>Suspecting that this function may already exist, I set off to <a href=http://www.haskell.org/hoogle>Hoogle</a> to find it.
+I discovered the type of my new function using GHCi:</p>
+<pre><code>ghci&gt; :t doSomething
+doSomething :: (Monad m) =&gt; m a1 -&gt; (a1 -&gt; r) -&gt; m r
+</code></pre>
+<p>And Hoogle turned up <code>liftM</code> from the <a href=http://hackage.haskell.org/package/base-4.6.0.1/docs/Control-Monad.html#v:liftM>Control.Monad</a> package as the <a href="http://www.haskell.org/hoogle/?hoogle=%28Monad+m%29+%3D%3E+m+a1+-%3E+%28a1+-%3E+r%29+-%3E+m+r">first result</a>, even though the arguments are flipped.
+So, my code above was now equivalent to:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=nf>mat</span> <span class=ow>&lt;-</span> <span class=n>liftM</span> <span class=n>readMatrix</span> <span class=n>getLine</span>
+</code></pre></div><p>Which is about as concise as I could ask for.
+So, if you ever need to perform a pure operation on a monadic value, try <code>lift</code>ing your function! Here are the original and the final versions side-by-side:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-haskell data-lang=haskell><span class=c1>-- Explicit</span>
+<span class=nf>strMat</span> <span class=ow>&lt;-</span> <span class=n>getLine</span>
+<span class=kr>let</span> <span class=n>mat</span> <span class=ow>=</span> <span class=n>readMatrix</span> <span class=n>strMat</span>
+
+<span class=c1>-- Lifted</span>
+<span class=nf>mat</span> <span class=ow>&lt;-</span> <span class=n>liftM</span> <span class=n>readMatrix</span> <span class=n>getLine</span>
+</code></pre></div>
+</div>
+<hr>
+<p class=site-subtitle>fin</p>
+</div>
+</div>
+</body>
+</html>

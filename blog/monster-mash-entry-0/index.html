@@ -1,0 +1,90 @@
+<!doctype html><html lang=en>
+<head>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="ie=edge">
+<title>Monster Mash: entry #0 &mdash; the crab & musket</title>
+<meta name=description content>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<link href=/css/main.css rel=stylesheet>
+<meta property="og:url" content="/blog/monster-mash-entry-0/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Monster Mash: entry #0">
+<meta property="article:published_time" content="2014-06-29T00:00:00+00:00Z">
+<meta name=twitter:card content="summary">
+<meta name=twitter:creator content="@crabmusket">
+<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
+<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
+<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
+</head>
+<body>
+<div class=container>
+<a href=/blog>
+<h1 class=site-title>
+<span class=site-title__prefix>the</span>
+crab & musket
+</h1>
+</a>
+<hr>
+<div class=content>
+<div class=post-header>
+<h2 class=post-header__title>Monster Mash: entry #0</h2>
+<span class=post-header__date>June 29, 2014</span>
+</div>
+<div class=post>
+<p>The first day of my <a href=http://itch.io/jams/monster-mash>Monster Mash</a> attempt has ended with some fortunate progress.
+Though I&rsquo;m technically cheating (the jam starts tomorrow), I absolve myself by pointing out that I&rsquo;ll be having a fairly busy week with several days off anyway - and I won&rsquo;t be <em>actually</em> submitting the game, most likely.
+Since I had some time today while travelling, I thought I&rsquo;d get some progress in early.
+I&rsquo;m using <a href=http://torque3d.org>Torque 3D</a> and <a href=http://www.blender.org/>Blender</a> for everything.</p>
+<p>To compensate for my abysmal skills at 3D modelling or anything artstic, I&rsquo;ve decided to play off the theme of the jam (monster protagonists) and make a game where you can&rsquo;t see your protagonist.
+The idea is you&rsquo;ll be a sort of &lsquo;swamp thing&rsquo; or lake-dwelling lurker, but you&rsquo;ll see the game from above the water&rsquo;s surface.
+The gameplay will have you slinking around, trying to snatch tourists and park rangers unawares from the lakeside.</p>
+<p>I originally wanted to work a mechanic into it where your view would lose track of where you actually were in the lake (gradually, the inaccuracy increasing), and you&rsquo;d then have to blow bubbles to recalibrate yourself before launching an attack.
+The idea being that making bubbles would alert rangers and tourists to your location, so you had to carefully balance knowing where you are with everyone else knowing where you are, too.
+I ditched this idea pretty soon - it would be too hard to balance, and didn&rsquo;t actually sound incredibly fun.
+Instead the game will be a little more straight stealth - get too close and you&rsquo;ll be noticed, etc.</p>
+<p>Anyway, here&rsquo;s what I got done today, mostly in gaps between getting on and off aeroplanes:</p>
+<ul>
+<li>Drafted the single level the game will take place in, first on paper then in Blender.
+It includes a lake, two islands, a boardwalk, and lots of pine trees.
+<em>So many</em> pine trees.
+Here it is so far!</li>
+</ul>
+<p><img src=http://i.imgur.com/YuYYyNf.png alt="Current level progress"></p>
+<ul>
+<li>Learned how to import stuff into Torque from Blender.
+I feel this isn&rsquo;t something to be all that proud of, because people manage it all the time.
+I&rsquo;ve always had trouble with it, however.
+But now my meshes are going into the game as they should.
+And while I haven&rsquo;t tried to work out texturing yet, I&rsquo;m feeling much more confident about the whole process.</li>
+<li>Learned how to use <code>WaterPlane</code> settings.
+Seriously, there are a lot of them.
+I mostly futzed with the array of ripple textures to get a really good ooze-like look, like the deadly sludge from Portal.
+Still to be done in this area: make the water less transparent.
+At the moment, it&rsquo;s completely see-through, which I don&rsquo;t want.</li>
+<li>Re-learned how to get the game to capture mouse input directly (spoilers: it&rsquo;s not about your <code>ActionMap</code>, you have to set <code>noCursor</code> on your <code>GameTSControl</code>).</li>
+<li>Fiddled with separate player/camera input schemes.
+I discovered separating the player and camera is easy enough - you just call <code>setFirstPerson(false)</code> on the connection and it starts to view through the camera.
+It gets trickier when you want to to any sort of control of both of them.
+My first step now is to make the movement relative to the camera, rather than absolute.
+I&rsquo;m sure there&rsquo;s a resource out there for that&mldr;</li>
+</ul>
+<p>Thoughts:</p>
+<ul>
+<li>I&rsquo;m enjoying being able to actually create stuff in Blender and put it in the game.
+Not something I&rsquo;ve done for a long time :P.</li>
+<li>I probably should be doing less manual Blender-ing of stuff like trees, and making use of the shape replicator, since that&rsquo;s what it&rsquo;s designed for.
+I didn&rsquo;t do that originally just because I was excited after having finished the boardwalks using instanced geometry, so I ust continued on doing the trees in the same fashion.
+Hopefully now the level is relatively finalised I won&rsquo;t have to worry too much about it.
+Also, I can&rsquo;t benefit from using LODs this way.
+As far as I can tell.</li>
+<li>I messed up my export process by deciding part-way through that I should really only have part of the level geometry be collidable - i.e. not the trees or the details of the boardwalks.
+I solved this quickly by just exporting different parts of the level as two different COllada meshes.
+This wouldn&rsquo;t be a problem if I were designing the level in T3D using replicators and placing the boardwalk instances manually, since each of them could have their own collision meshes.</li>
+</ul>
+</div>
+<hr>
+<p class=site-subtitle>fin</p>
+</div>
+</div>
+</body>
+</html>

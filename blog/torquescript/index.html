@@ -1,0 +1,177 @@
+<!doctype html><html lang=en>
+<head>
+<meta charset=utf-8>
+<meta http-equiv=x-ua-compatible content="ie=edge">
+<title>A matter of opinion: what I dislike about TorqueScript &mdash; the crab & musket</title>
+<meta name=description content>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<link href=/css/main.css rel=stylesheet>
+<meta property="og:url" content="/blog/torquescript/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A matter of opinion: what I dislike about TorqueScript">
+<meta property="article:published_time" content="2014-12-25T00:00:00+00:00Z">
+<meta name=twitter:card content="summary">
+<meta name=twitter:creator content="@crabmusket">
+<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
+<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
+<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
+</head>
+<body>
+<div class=container>
+<a href=/blog>
+<h1 class=site-title>
+<span class=site-title__prefix>the</span>
+crab & musket
+</h1>
+</a>
+<hr>
+<div class=content>
+<div class=post-header>
+<h2 class=post-header__title>A matter of opinion: what I dislike about TorqueScript</h2>
+<span class=post-header__date>December 25, 2014</span>
+</div>
+<div class=post>
+<p>It appears that despite spending a long time ranting about my dislike for TorqueScript, I haven&rsquo;t made it clear exactly what frustrates me.
+This post is an effort to rectify those misunderstandings.</p>
+<h2 id=disclaimer>Disclaimer</h2>
+<p>What I want to do here isn&rsquo;t to criticise the people who designed TorqueScript, or say that they should have made different decisions when TorqueScript was designed.
+What may have been perfectly valid design choices in 1998 (such as writing your own custom scripting language!) may no longer be so sensible now.</p>
+<p>My goal is to lay out what I personally find offputting about the language, because it seems I haven&rsquo;t made that clear.
+This is why I don&rsquo;t <em>enjoy</em> writing TorqueScript code, in the context of other languages I use regularly, as well as in the context of potential alternative scripting languages.
+And at the end I&rsquo;ll present changes I would like to make to the language, if we can&rsquo;t reach a consensus on replacing it entirely.</p>
+<p>Speaking of other languages I use regularly, here&rsquo;s a brief rundown of how I see programming languages, so you get a sense of where I&rsquo;m making these criticisms from:</p>
+<ul>
+<li>Most of my time is spent using JavaScript and C++</li>
+<li>Haskell is my favourite language and I wish I could use it more, and if you say anything bad about it I will fight you</li>
+<li>I&rsquo;ve spent significant amounts of time using C, Python, TorqueScript, MATLAB, Java, and less significant amounts in Scala, Ruby, PHP and assorted domain-specific languages like bash</li>
+<li>I have no particular love for curly braces, and I don&rsquo;t at all mind significant whitespace</li>
+<li>I prefer static typing and compile-time checks where possible (references over pointers, const-correctness)</li>
+<li>I prefer functional style where appropriate (pure functions, immutable values)</li>
+<li>I prefer natural language operators like <code>and</code> and <code>or</code> (as in Python) instead of <code>&&</code> and <code>||</code> (as in C)</li>
+</ul>
+<p>Note that I have plenty of complaints with TorqueScript as a general-purpose language, but I&rsquo;m trying to steer clear of those criticisms because TS is <em>not</em> a general-purpose language.
+It&rsquo;s just a little embedded scripting language intended to let you glue bits of Torque together.
+With that said, let&rsquo;s launch into one of my pet peeves, those pesky</p>
+<h2 id=s-everywhere>%s everywhere</h2>
+<p>Having <code>$</code> prefix global variables seems reasonable.
+Separating locals and globals is good.
+Having <code>%</code> prefix local variables seems&mldr; less so.
+It introduces a lot of line noise.
+Syntax highlighting helps, but it&rsquo;s a pain to type (maybe I need to learn to touch type properly) and read.</p>
+<p>This is related to the</p>
+<h2 id=lack-of-variable-declarations>Lack of variable declarations</h2>
+<p>JavaScript got it right when asking you to use <code>var</code> to declare local variables&mldr; then put its foot in it by treating all non-local variables as globals implicitly.
+A couple more declarations here and there really help you to catch typos and so on.
+This is probably in the name of &lsquo;flexibility&rsquo;, but it&rsquo;s a tradeoff I personally find helpful.</p>
+<p>But on the other hand, there&rsquo;s</p>
+<h2 id=rigidity-in-the-grammar>Rigidity in the grammar</h2>
+<p>For example, no local function definitions (they don&rsquo;t even have to be locally scoped, just defined when the outer function is called).
+For example, adding objects to being-created objects <em>must</em> be done inline, instead of allowing you to, for example, create a <code>new SimSet() { %a; %b; %c; }</code>.</p>
+<p>Of course, these are just about the smallest criticisms I have.
+A slightly more significant one is the way the language is</p>
+<h2 id=imperative-to-the-core>Imperative to the core</h2>
+<p>This is <em>defintiely</em> not a citicism of TorqueScript&rsquo;s original creators, but I really like control flow statements that are actually expressions.
+CoffeeScript is a very popular example of this paradigm, but I&rsquo;ll show you some Rust code since it&rsquo;s got curly braces:</p>
+<div class=highlight><pre tabindex=0 class=chroma><code class=language-rust data-lang=rust><span class=kd>let</span><span class=w> </span><span class=n>result</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>this</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>that</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span><span class=w>    </span><span class=kd>let</span><span class=w> </span><span class=n>x</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>5</span><span class=p>,</span><span class=w> </span><span class=n>y</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>10</span><span class=p>;</span><span class=w>
+</span><span class=w>    </span><span class=n>x</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>y</span><span class=w>
+</span><span class=w></span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
+</span><span class=w>    </span><span class=o>-</span><span class=mi>1</span><span class=w>
+</span><span class=w></span><span class=p>};</span><span class=w>
+</span></code></pre></div><p>Yes, yes, C-like languages have the <code>? :</code> &lsquo;ternary&rsquo; operator, but seriously, how ugly is that - and it doesn&rsquo;t give you scope for <em>doing</em> anything in each branch, like declaring those local variables <code>x</code> and <code>y</code>.
+It&rsquo;s ok for tiny one-liners, but rather than this:</p>
+<pre><code>%a = %b ? %c : %d;
+</code></pre>
+<p>what&rsquo;s wrong with this:</p>
+<pre><code>%a = if (%b) %c else %d;
+</code></pre>
+<p>It always surprises me that languages like Python and Ruby still haven&rsquo;t adopted the first-class <code>if</code>.
+Ruby, however, does introduce the lovely idea that the last expression in a function is its return value, needing no explicit <code>return</code> call.
+This is an extension of the idea.</p>
+<p>This sort of &lsquo;everything is an expression&rsquo; paradigm is being imported <em>en masse</em> from functional languages.
+Two recent imperative languages that incorporate this idea wholeheartedly are Rust and Scala.
+Now, to be sure, this is still a relatively minor syntactic quibble, though I think functional style makes code quicker to read and write (see the section below on speed).</p>
+<p>Even worse than this, though, is the language&rsquo;s</p>
+<h2 id=focus-on-class-hierarchy>Focus on class hierarchy</h2>
+<p>This is one of those things that probably made perfectly good sense when TS was designed, but languages have moved on a bit since then.
+The idea that an object must be a part of a rigid class tree is limiting and results in frustrating behaviour.
+For example, if I make a <a href=https://github.com/eightyeight/7dfps-template/tree/master/game/lib/stateMachine><code>StateMachine</code> namespace</a> so I can call methods like <code>onEvent</code>, I can only insert it at a single place in the type hierarchy, rather than being able to mix these methods into multiple object types.</p>
+<p>So, practically, if I create a <code>new ScriptMsgListener() { class = StateMachine; }</code>, I can&rsquo;s also create a <code>new ScriptObject() { class = StateMachine; }</code>.
+Of course, in this specific instance I could fairly harmlessly insert the namespace near the top of the hierarchy, but that would be dangerous if I wanted to do something more than add some optional methods (like do things in <code>onAdd</code> or <code>onRemove</code>).</p>
+<p>But probably my biggest issues are brought on by the fact that</p>
+<h2 id=torquescript-is-stringly-typed>TorqueScript is stringly typed</h2>
+<p>Need an array or list of values?
+It&rsquo;s a space-separated string!
+Need a vector?
+Same deal.
+Custom struct?
+What&rsquo;s that?</p>
+<p>I should note that James Urquhart has made huge efforts to reduce the amount of to-string/from-string that goes on behind the scenes, and his efforts are much appreciated.
+I&rsquo;m talking not about the <em>inefficiency</em> of string storage, but about the effect is has on the user of the language, to whom all variables can be treated as strings, no matter their actual type.
+This leads to some unfortunate things, like&mldr;</p>
+<h2 id=no-syntax-overloading>No syntax overloading</h2>
+<p>In most languages, you can make a 3D vector class such as <code>Point3F</code> which can be added using the language&rsquo;s natural mathematical operators like <code>+</code> and <code>-</code>.
+In C++ or Python it&rsquo;s through operator overloading; in Haskell it&rsquo;s through typeclasses; JavaScript is a notable example of a language where this isn&rsquo;t possible
+(unless you&rsquo;re <a href=http://www.2ality.com/2011/12/fake-operator-overloading.html>insane</a> or have <a href=http://sweetjs.org/>better tools</a>).
+Anyway, when it&rsquo;s available, it&rsquo;s super helpful.</p>
+<p>A second thing you can do in popular languages is &lsquo;override&rsquo; the behaviour of for loops and other control structures.
+C++ has iterators; Python has special builtin methods; Haskell doesn&rsquo;t have loops anyway.</p>
+<p>TS provides no mechanism for this, even on the C++ side (by which I mean - I can&rsquo;t make a custom class in C++ which has any special behaviour when you <code>+</code> two of them in script, or use a foreach loop on it).
+The most obvious consequence of this is that vector maths is painful to read and write, but it also means we have to treat complex return types (for example, the result of <code>ContainerCastRay</code> as a simple string.
+It also means that, for example, there&rsquo;s no difference between an object ID and just some number.</p>
+<p>You might think of this as the ultimate duck-typing.
+It, unfortunately, means we have to rely on</p>
+<h2 id=explicit-syntax-overloading>Explicit syntax overloading</h2>
+<p><code>switch</code>/<code>switch$</code> and <code>foreach</code>/<code>foreach$</code> are painful.
+<code>==</code> and <code>$=</code> <em>just</em> escape because there is some difference in intent, which implies an explicit cast from non-string to string type.</p>
+<p>Oh, and as for speed-</p>
+<h2 id=yes-its-slow-apparently>Yes, it&rsquo;s slow, apparently</h2>
+<p>I&rsquo;m sure it&rsquo;s slow with all those strings going everywhere, but I haven&rsquo;t really checked.
+I don&rsquo;t think speed is the primary concern for a scripting language.
+Runtime speed, I mean - scripting should increase <em>development</em> speed, or we&rsquo;d just write everything in C++.
+There&rsquo;s an argument to be made for modding support as well, but that&rsquo;s not a factor for everybody.</p>
+<h2 id=a-meta-criticism>A meta-criticism</h2>
+<p>I&rsquo;m not sure if this is the fault of TorqueScript, or merely a product of its environment, but TS code is typically full of global variables and global functions.
+(Lack of a module system surely doesn&rsquo;t help.
+But then again, who needs modules?
+C++ programmers get by with text <code>#include</code>s!)
+It doesn&rsquo;t help that the engine requires so much configuration, all using global variables and functions.
+This paradigm then creeps into the C++ code, where console globals are checked willy-nilly.
+This is more a question of API design than language design, but it makes me cry a little inside when I have to write this:</p>
+<pre><code>enableDirectInput();
+$enableDirectInput = true;
+</code></pre>
+<p>Without that second line, gamepad input doesn&rsquo;t work.
+I mean, obviously.</p>
+<p>If you TL;DR up to this point, here&rsquo;s a &ldquo;brief&rdquo; list of</p>
+<h2 id=things-id-like-to-seedo>Things I&rsquo;d like to see/do</h2>
+<p>I.e. my wishlist.
+I&rsquo;m not asking for anyone to do them, and I&rsquo;m not promising to work on them myself, I&rsquo;m simply presenting my sort of ideal TorqueScript, which is different enough that I actually don&rsquo;t dislike the language.</p>
+<ul>
+<li><a href=https://github.com/GarageGames/Torque3D/issues/774>Anonymous functions</a></li>
+<li>Calling functions that are assigned to variables. As in: <code>%x = echo; %x(hello);</code></li>
+<li>Function declarations inside object definitions (to create namespaced functions)</li>
+<li>Finding a way to make <code>foreach</code> behaviour generic and accessible from C++</li>
+<li>Finding a way to make <code>switch</code> and <code>foreach</code> work without <code>$</code> variants</li>
+<li>For bonus marks, finding a way to extend <code>foreach</code> to optionally iterate over lines or fields instead of words</li>
+<li>Finding a way to make arithmetic operators overloadable from C++</li>
+<li><a href=https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment>Destructuring assignment</a> for strings (this would enable multiple return values a bit more nicely, especially with some syntax sugar)</li>
+<li>Some sort of namespace mixins to sit alongside the class hierarchy</li>
+<li><a href=https://www.promisejs.org/>Promises</a></li>
+<li>Some sort of module system, even if it&rsquo;s as simple as JavaScript&rsquo;s AMD. Though even a &lsquo;simple&rsquo; AMD might require</li>
+<li>Anonymous namespaces, closure scoping, and a whole bunch of other stuff that seems far too complicated to deal with</li>
+</ul>
+<p>Any items mentioned in sections above (like expression-style control flow) are implicitly on this list.
+I&rsquo;ve actually made a lot of recommendations like this before, when I talked about intending to build a <a href=http://www.garagegames.com/community/forums/viewthread/135563>TorqueScript precompiler</a>.
+That project was <a href=https://github.com/eightyeight/language-torquescript>started</a>, but I haven&rsquo;t touched it for a while.</p>
+<h2 id=if-you-cant-beat-em>If you can&rsquo;t beat &lsquo;em</h2>
+<p>I imagine I&rsquo;d have a lot less to complain about if the engine API were designed better (with fewer global variables and hardcoded callbacks, for example), or the compilation process meant that using TS was less necessary - for example, enabling edit-and-continue.</p>
+<p>I also think a key issue for me is not that TorqueScript be given the powers of a fully-fledged programming language - types, reflection, metaprogramming, classes, etc. - but that these powers be made available, to some limited extent, on the C++ side of things.
+For example, I wouldn&rsquo;t mind if I couldn&rsquo;t define a type in TorqueScript that has special behaviour in a <code>foreach</code> loop, as long as I <em>could</em> do that in C++.</p>
+</div>
+<hr>
+<p class=site-subtitle>fin</p>
+</div>
+</div>
+</body>
+</html>
