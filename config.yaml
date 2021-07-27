@@ -3,3 +3,8 @@ languageCode: en-us
 title: the crab & musket
 pygmentsUseClasses: true
 pygmentsCodeFences: true
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
