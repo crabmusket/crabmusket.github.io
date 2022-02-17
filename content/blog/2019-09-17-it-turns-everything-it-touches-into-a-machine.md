@@ -27,6 +27,7 @@ But there is a _subtler_ horror depicted in that famous scene.
 In the moments before the accident, Freder observes the enormous machine in flawless operation, powering the city he lives in.
 Ranks of underclass machine operators move in a precisely choreographed dance, pulling levers and turning wheels with a rhythmic tempo.
 They are almost indistinguishable from the rotating arms of the engine itself, seeming to actually be part of the mechanism.
+
 They remain human only biologically: in all other aspects, they have _become machines_.
 Only after being accidentally maimed by the explosion do they regain their humanity.
 
