@@ -1,234 +1,161 @@
-<!doctype html><html lang=en>
-<head>
-<meta charset=utf-8>
-<meta http-equiv=x-ua-compatible content="ie=edge">
-<title>The Torque 3D shutdown sequence - a safari &mdash; the crab & musket</title>
-<meta name=description content>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<link href=/css/main.css rel=stylesheet>
-<meta property="og:url" content="/blog/torque-3d-shutdown-sequence/">
-<meta property="og:type" content="article">
-<meta property="og:title" content="The Torque 3D shutdown sequence - a safari">
-<meta property="article:published_time" content="2014-06-24T00:00:00+00:00Z">
-<meta name=twitter:card content="summary">
-<meta name=twitter:creator content="@crabmusket">
-<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
-<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
-<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
-</head>
-<body>
-<div class=container>
-<a href=/blog>
-<h1 class=site-title>
-<span class=site-title__prefix>the</span>
-crab & musket
-</h1>
-</a>
-<hr>
-<div class=content>
-<div class=post-header>
-<h2 class=post-header__title>The Torque 3D shutdown sequence - a safari</h2>
-<span class=post-header__date>June 24, 2014</span>
-</div>
-<div class=post>
-<p>Welcome to the second Torque 3D safari. In this series I document my explorations
+<!doctype html><html lang=en><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="ie=edge"><title>The Torque 3D shutdown sequence - a safari &mdash; the crab & musket</title><meta name=description content><meta name=viewport content="width=device-width,initial-scale=1"><link href=/css/main.css rel=stylesheet><meta property="og:url" content="/blog/torque-3d-shutdown-sequence/"><meta property="og:type" content="article"><meta property="og:title" content="The Torque 3D shutdown sequence - a safari"><meta property="article:published_time" content="2014-06-24T00:00:00+00:00Z"><meta name=twitter:card content="summary"><meta name=twitter:creator content="@crabmusket"><link rel=webmention href=https://webmention.io/crabmusket.net/webmention><link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc><link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket"></head><body><div class=container><a href=/blog><h1 class=site-title><span class=site-title__prefix>the</span>
+crab & musket</h1></a><hr><div class=content><div class=post-header><h2 class=post-header__title>The Torque 3D shutdown sequence - a safari</h2><span class=post-header__date>June 24, 2014</span></div><div class=post><p>Welcome to the second Torque 3D safari. In this series I document my explorations
 in the <a href=http://torque3d.org>Torque 3D</a> source code. Today, I&rsquo;m exploring the engine&rsquo;s shutdown
 sequence in order to change the engine&rsquo;s <a href=http://en.wikipedia.org/wiki/Exit_status>exit status</a> code. Currently, it
 always returns 0 (success). For the purpose of unit testing, I&rsquo;d like to see if
 I can make it return a 1 (or any other code) if I want it to (i.e., if tests
-fail).</p>
-<h2 id=picking-up-the-trail>Picking up the trail</h2>
-<p>We&rsquo;ll start by searching for the <code>quit</code> console function, which is what we call
+fail).</p><h2 id=picking-up-the-trail>Picking up the trail</h2><p>We&rsquo;ll start by searching for the <code>quit</code> console function, which is what we call
 from scripts to shut down the engine. Doing a text search in the engine yields a
 ton of lines with <code>quit</code>, but only one that&rsquo;s a <code>DefineConsoleFunction</code>. Its body
-is pretty simple:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>Platform</span><span class=o>::</span><span class=n>postQuitMessage</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
-</code></pre></div><p>Okay, well let&rsquo;s try changing that <code>0</code> to a <code>1</code>. No dice, we still get a <code>0</code> code
+is pretty simple:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>Platform</span><span class=o>::</span><span class=n>postQuitMessage</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span></code></pre></div><p>Okay, well let&rsquo;s try changing that <code>0</code> to a <code>1</code>. No dice, we still get a <code>0</code> code
 on return. Let&rsquo;s follow the trail. <code>Platform::postQuitMessage</code> is also pretty
-simple, and just does this:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>PostQuitMessage</span><span class=p>(</span><span class=n>in_quitVal</span><span class=p>);</span>
-</code></pre></div><p>&mldr;and that&rsquo;s a Windows API function. Huh. That&rsquo;s going nowhere. So it looks like
+simple, and just does this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>PostQuitMessage</span><span class=p>(</span><span class=n>in_quitVal</span><span class=p>);</span>
+</span></span></code></pre></div><p>&mldr;and that&rsquo;s a Windows API function. Huh. That&rsquo;s going nowhere. So it looks like
 we&rsquo;ll have to look at this from the other end - figure out what causes the engine&rsquo;s
-main loop to stop, and catch the problem from that end.</p>
-<h2 id=the-main-loop>The main loop</h2>
-<p>I happen to already know that the engine main loop lives in <code>StandardMainLoop::doMainLoop</code>,
+main loop to stop, and catch the problem from that end.</p><h2 id=the-main-loop>The main loop</h2><p>I happen to already know that the engine main loop lives in <code>StandardMainLoop::doMainLoop</code>,
 but that&rsquo;s too far in to be useful yet. What we need to find is where the executable
 returns and work back from there. So we&rsquo;ll start in the game project (not the DLL
-project) and open <code>main.cpp</code>. <code>WinMain</code> is our target.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>torque_winmain</span> <span class=o>=</span> <span class=p>(...</span><span class=n>cast</span><span class=p>...)</span><span class=n>GetProcAddress</span><span class=p>(</span><span class=n>hGame</span><span class=p>,</span> <span class=s>&#34;torque_winmain&#34;</span><span class=p>);</span>
-<span class=c1>// ...
-</span><span class=c1></span><span class=kt>int</span> <span class=n>ret</span> <span class=o>=</span> <span class=n>torque_winmain</span><span class=p>(</span><span class=n>hInstance</span><span class=p>,</span> <span class=n>hPrevInstance</span><span class=p>,</span> <span class=n>lpszCmdLine</span><span class=p>,</span> <span class=n>nCommandShow</span><span class=p>);</span>
-<span class=c1>// ...
-</span><span class=c1></span><span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
-</code></pre></div><p>I&rsquo;ve picked out the pertinent lines. Basically, what&rsquo;s happening here is that
+project) and open <code>main.cpp</code>. <code>WinMain</code> is our target.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>torque_winmain</span> <span class=o>=</span> <span class=p>(...</span><span class=n>cast</span><span class=p>...)</span><span class=n>GetProcAddress</span><span class=p>(</span><span class=n>hGame</span><span class=p>,</span> <span class=s>&#34;torque_winmain&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>int</span> <span class=n>ret</span> <span class=o>=</span> <span class=n>torque_winmain</span><span class=p>(</span><span class=n>hInstance</span><span class=p>,</span> <span class=n>hPrevInstance</span><span class=p>,</span> <span class=n>lpszCmdLine</span><span class=p>,</span> <span class=n>nCommandShow</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span></code></pre></div><p>I&rsquo;ve picked out the pertinent lines. Basically, what&rsquo;s happening here is that
 the Torque DLL is loaded, then we pull out a function called <code>torque_winmain</code>,
-run it, and return what it gives us. Let&rsquo;s find it.</p>
-<p>Back in the DLL project, I do a text search for <code>torque_winmain</code> and find this in
-<code>platformWin32/winWindow.cpp</code>:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>S32</span> <span class=n>torque_winmain</span><span class=p>(</span> <span class=n>HINSTANCE</span> <span class=n>hInstance</span><span class=p>,</span> <span class=n>HINSTANCE</span><span class=p>,</span> <span class=n>LPSTR</span> <span class=n>lpszCmdLine</span><span class=p>,</span> <span class=n>S32</span><span class=p>)</span>
-</code></pre></div><p>Which does this:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>S32</span> <span class=n>retVal</span> <span class=o>=</span> <span class=n>TorqueMain</span><span class=p>(</span><span class=n>argv</span><span class=p>.</span><span class=n>size</span><span class=p>(),</span> <span class=p>(</span><span class=k>const</span> <span class=kt>char</span> <span class=o>**</span><span class=p>)</span> <span class=n>argv</span><span class=p>.</span><span class=n>address</span><span class=p>());</span>
-<span class=c1>//  ...
-</span><span class=c1></span><span class=k>return</span> <span class=n>retVal</span><span class=p>;</span>
-</code></pre></div><p>Okay, let&rsquo;s follow the rabbit hole to the definition of <code>TorqueMain</code>. I will note
+run it, and return what it gives us. Let&rsquo;s find it.</p><p>Back in the DLL project, I do a text search for <code>torque_winmain</code> and find this in
+<code>platformWin32/winWindow.cpp</code>:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>S32</span> <span class=n>torque_winmain</span><span class=p>(</span> <span class=n>HINSTANCE</span> <span class=n>hInstance</span><span class=p>,</span> <span class=n>HINSTANCE</span><span class=p>,</span> <span class=n>LPSTR</span> <span class=n>lpszCmdLine</span><span class=p>,</span> <span class=n>S32</span><span class=p>)</span>
+</span></span></code></pre></div><p>Which does this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>S32</span> <span class=n>retVal</span> <span class=o>=</span> <span class=n>TorqueMain</span><span class=p>(</span><span class=n>argv</span><span class=p>.</span><span class=n>size</span><span class=p>(),</span> <span class=p>(</span><span class=k>const</span> <span class=kt>char</span> <span class=o>**</span><span class=p>)</span> <span class=n>argv</span><span class=p>.</span><span class=n>address</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=c1>//  ...
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>return</span> <span class=n>retVal</span><span class=p>;</span>
+</span></span></code></pre></div><p>Okay, let&rsquo;s follow the rabbit hole to the definition of <code>TorqueMain</code>. I will note
 at this point that all these functions are returning <code>S32</code>s, signed 32-bit
-integers, which bodes well. <code>TorqueMain</code> is pretty simple:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>S32</span> <span class=nf>TorqueMain</span><span class=p>(</span><span class=kt>int</span> <span class=n>argc</span><span class=p>,</span> <span class=k>const</span> <span class=kt>char</span> <span class=o>**</span><span class=n>argv</span><span class=p>)</span>
-<span class=p>{</span>
-   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>torque_engineinit</span><span class=p>(</span><span class=n>argc</span><span class=p>,</span> <span class=n>argv</span><span class=p>))</span>
-      <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
-
-   <span class=k>while</span><span class=p>(</span><span class=n>torque_enginetick</span><span class=p>())</span> <span class=p>{}</span>
-
-   <span class=n>torque_engineshutdown</span><span class=p>();</span>
-   <span class=k>return</span> <span class=mi>0</span><span class=p>;</span>
-<span class=p>}</span>
-</code></pre></div><p>Well there&rsquo;s your problem, then. So where can we get a return code from to
+integers, which bodes well. <code>TorqueMain</code> is pretty simple:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>S32</span> <span class=nf>TorqueMain</span><span class=p>(</span><span class=kt>int</span> <span class=n>argc</span><span class=p>,</span> <span class=k>const</span> <span class=kt>char</span> <span class=o>**</span><span class=n>argv</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>torque_engineinit</span><span class=p>(</span><span class=n>argc</span><span class=p>,</span> <span class=n>argv</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=mi>1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=k>while</span><span class=p>(</span><span class=n>torque_enginetick</span><span class=p>())</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=n>torque_engineshutdown</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>   <span class=k>return</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Well there&rsquo;s your problem, then. So where can we get a return code from to
 provide here? <code>torque_enginetick</code> does return an <code>S32</code>, but let&rsquo;s see where it
-gets that number from.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>bool</span> <span class=n>ret</span> <span class=o>=</span> <span class=n>StandardMainLoop</span><span class=o>::</span><span class=n>doMainLoop</span><span class=p>();</span> 
-<span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
-</code></pre></div><p>Right. So here we&rsquo;re getting a <code>bool</code> from <code>doMainLoop</code> and casting it up to
+gets that number from.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>bool</span> <span class=n>ret</span> <span class=o>=</span> <span class=n>StandardMainLoop</span><span class=o>::</span><span class=n>doMainLoop</span><span class=p>();</span> 
+</span></span><span class=line><span class=cl><span class=k>return</span> <span class=n>ret</span><span class=p>;</span>
+</span></span></code></pre></div><p>Right. So here we&rsquo;re getting a <code>bool</code> from <code>doMainLoop</code> and casting it up to
 an <code>S32</code>. Which evidently is <code>true</code>, or <code>1</code>, until the engine exits. So it looks
-like we do some to <code>doMainLoop</code> after all. Which looks kind of like:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>bool</span> <span class=n>StandardMainLoop</span><span class=o>::</span><span class=n>doMainLoop</span><span class=p>()</span>
-<span class=p>{</span>
-   <span class=kt>bool</span> <span class=n>keepRunning</span> <span class=o>=</span> <span class=nb>true</span><span class=p>;</span>
-
-   <span class=c1>// ...
-</span><span class=c1></span>
-   <span class=k>if</span><span class=p>(</span><span class=o>!</span><span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>())</span>
-      <span class=n>keepRunning</span> <span class=o>=</span> <span class=nb>false</span><span class=p>;</span>
-
-   <span class=c1>// ...
-</span><span class=c1></span>
-   <span class=k>return</span> <span class=n>keepRunning</span><span class=p>;</span>
-<span class=p>}</span>
-</code></pre></div><p>Right. So <code>doMainLoop</code> always returns <code>true</code>, until we shut the engine down. So
+like we do some to <code>doMainLoop</code> after all. Which looks kind of like:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>bool</span> <span class=n>StandardMainLoop</span><span class=o>::</span><span class=n>doMainLoop</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=kt>bool</span> <span class=n>keepRunning</span> <span class=o>=</span> <span class=nb>true</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl>   <span class=k>if</span><span class=p>(</span><span class=o>!</span><span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>      <span class=n>keepRunning</span> <span class=o>=</span> <span class=nb>false</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=c1>// ...
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl>   <span class=k>return</span> <span class=n>keepRunning</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Right. So <code>doMainLoop</code> always returns <code>true</code>, until we shut the engine down. So
 how does the quit signal cause the main loop to stop, and how could we get that
-value out of the main loop?</p>
-<h2 id=event-processing>Event processing</h2>
-<p>I guess we&rsquo;ll dive into <code>processEvents</code>.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>bool</span> <span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>()</span>
-<span class=p>{</span>
-   <span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_signalProcess</span><span class=p>.</span><span class=n>trigger</span><span class=p>();</span>
-
-   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_RequestShutdown</span><span class=p>)</span> 
-      <span class=k>return</span> <span class=nb>true</span><span class=p>;</span>
-
-   <span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_RequestShutdown</span> <span class=o>=</span> <span class=nb>false</span><span class=p>;</span>
-   <span class=k>return</span> <span class=nb>false</span><span class=p>;</span>
-<span class=p>}</span>
-</code></pre></div><p>Okay, so if if <code>_RequestShutdown</code> is <code>false</code>, we&rsquo;ll return <code>true</code> (i.e., keep
+value out of the main loop?</p><h2 id=event-processing>Event processing</h2><p>I guess we&rsquo;ll dive into <code>processEvents</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>bool</span> <span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_signalProcess</span><span class=p>.</span><span class=n>trigger</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_RequestShutdown</span><span class=p>)</span> 
+</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=nb>true</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_RequestShutdown</span> <span class=o>=</span> <span class=nb>false</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>   <span class=k>return</span> <span class=nb>false</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Okay, so if if <code>_RequestShutdown</code> is <code>false</code>, we&rsquo;ll return <code>true</code> (i.e., keep
 running). Otherwise we&rsquo;ll tell the main loop to stop. I&rsquo;m really not sure what
 this <code>Process</code> machinery does, but I&rsquo;m interested in this <code>trigger</code> method.
 Let&rsquo;s first see if we can see where <code>_RequestShutdown</code> might be set. I do a &lsquo;find
-all references&rsquo; and immediately turn up:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>void</span> <span class=n>Process</span><span class=o>::</span><span class=n>requestShutdown</span><span class=p>()</span>
-<span class=p>{</span>
-   <span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_RequestShutdown</span> <span class=o>=</span> <span class=nb>true</span><span class=p>;</span>
-<span class=p>}</span>
-</code></pre></div><p>Well that was less mysterious than I expected. Let&rsquo;s see where this is called.
+all references&rsquo; and immediately turn up:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>void</span> <span class=n>Process</span><span class=o>::</span><span class=n>requestShutdown</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=n>Process</span><span class=o>::</span><span class=n>get</span><span class=p>().</span><span class=n>_RequestShutdown</span> <span class=o>=</span> <span class=nb>true</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Well that was less mysterious than I expected. Let&rsquo;s see where this is called.
 Turns out it actually happens a lot. One in <code>GuiCanvas</code> handling <code>WindowClose</code>
 and <code>WindowDestroy</code> events, and some in unit tests for&mldr; networking? Okay, here&rsquo;s
-a unit test for <code>Process</code> which may shed some light on the matter.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>void</span> <span class=nf>process</span><span class=p>()</span>
-<span class=p>{</span>
-   <span class=k>if</span><span class=p>(</span><span class=n>_remainingTicks</span><span class=o>==</span><span class=mi>0</span><span class=p>)</span>
-      <span class=n>Process</span><span class=o>::</span><span class=n>requestShutdown</span><span class=p>();</span>
-
-   <span class=n>_remainingTicks</span><span class=o>--</span><span class=p>;</span>
-<span class=p>}</span>
-
-<span class=kt>void</span> <span class=nf>run</span><span class=p>()</span>
-<span class=p>{</span>
-   <span class=c1>// We&#39;ll run 30 ticks, then quit.
-</span><span class=c1></span>   <span class=n>_remainingTicks</span> <span class=o>=</span> <span class=mi>30</span><span class=p>;</span>
-
-   <span class=c1>// Register with the process list.
-</span><span class=c1></span>   <span class=n>Process</span><span class=o>::</span><span class=n>notify</span><span class=p>(</span><span class=k>this</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>TestingProcess</span><span class=o>::</span><span class=n>process</span><span class=p>);</span>
-
-   <span class=c1>// And do 30 notifies, making sure we end on the 30th.
-</span><span class=c1></span>   <span class=k>for</span><span class=p>(</span><span class=n>S32</span> <span class=n>i</span><span class=o>=</span><span class=mi>0</span><span class=p>;</span> <span class=n>i</span><span class=o>&lt;</span><span class=mi>30</span><span class=p>;</span> <span class=n>i</span><span class=o>++</span><span class=p>)</span>
-      <span class=n>test</span><span class=p>(</span><span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>(),</span> <span class=s>&#34;Should quit after 30 ProcessEvents() calls - not before!&#34;</span><span class=p>);</span>
-   <span class=n>test</span><span class=p>(</span><span class=o>!</span><span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>(),</span> <span class=s>&#34;Should quit after the 30th ProcessEvent() call!&#34;</span><span class=p>);</span>
-
-   <span class=n>Process</span><span class=o>::</span><span class=n>remove</span><span class=p>(</span><span class=k>this</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>TestingProcess</span><span class=o>::</span><span class=n>process</span><span class=p>);</span>
-<span class=p>}</span>
-</code></pre></div><p>Okay, well&mldr; that makes sense. So every process tick, the <code>process</code> method of
+a unit test for <code>Process</code> which may shed some light on the matter.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>void</span> <span class=nf>process</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=k>if</span><span class=p>(</span><span class=n>_remainingTicks</span><span class=o>==</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>      <span class=n>Process</span><span class=o>::</span><span class=n>requestShutdown</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=n>_remainingTicks</span><span class=o>--</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kt>void</span> <span class=nf>run</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=c1>// We&#39;ll run 30 ticks, then quit.
+</span></span></span><span class=line><span class=cl><span class=c1></span>   <span class=n>_remainingTicks</span> <span class=o>=</span> <span class=mi>30</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=c1>// Register with the process list.
+</span></span></span><span class=line><span class=cl><span class=c1></span>   <span class=n>Process</span><span class=o>::</span><span class=n>notify</span><span class=p>(</span><span class=k>this</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>TestingProcess</span><span class=o>::</span><span class=n>process</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=c1>// And do 30 notifies, making sure we end on the 30th.
+</span></span></span><span class=line><span class=cl><span class=c1></span>   <span class=k>for</span><span class=p>(</span><span class=n>S32</span> <span class=n>i</span><span class=o>=</span><span class=mi>0</span><span class=p>;</span> <span class=n>i</span><span class=o>&lt;</span><span class=mi>30</span><span class=p>;</span> <span class=n>i</span><span class=o>++</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>      <span class=n>test</span><span class=p>(</span><span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>(),</span> <span class=s>&#34;Should quit after 30 ProcessEvents() calls - not before!&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>   <span class=n>test</span><span class=p>(</span><span class=o>!</span><span class=n>Process</span><span class=o>::</span><span class=n>processEvents</span><span class=p>(),</span> <span class=s>&#34;Should quit after the 30th ProcessEvent() call!&#34;</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=n>Process</span><span class=o>::</span><span class=n>remove</span><span class=p>(</span><span class=k>this</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>TestingProcess</span><span class=o>::</span><span class=n>process</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Okay, well&mldr; that makes sense. So every process tick, the <code>process</code> method of
 the unit test class will be called, and it will shut down when <code>30</code> ticks have
-passed. Which causes <code>processEvents</code> to return <code>false</code>. I think.</p>
-<p>Um. That&rsquo;s kind of what we knew already. Just more condensed. Okay, cool.</p>
-<p>So <code>Process::notify</code> is important to this somehow. But let&rsquo;s actually forget about
+passed. Which causes <code>processEvents</code> to return <code>false</code>. I think.</p><p>Um. That&rsquo;s kind of what we knew already. Just more condensed. Okay, cool.</p><p>So <code>Process::notify</code> is important to this somehow. But let&rsquo;s actually forget about
 it and see if we can go even deeper. The only two likely candidates left that
 aren&rsquo;t unit tests are two results from <code>windowManager/win32/winDispatch.cpp</code>.
 One is wrapped inside <code>Journal::isPlaying</code>, which doesn&rsquo;t sound relevant, and
-the other is:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp>	<span class=k>case</span> <span class=nl>WM_QUIT</span><span class=p>:</span> <span class=p>{</span>
-	   <span class=c1>// Quit indicates that we&#39;re not going to receive anymore Win32 messages.
-</span><span class=c1></span>	   <span class=c1>// Therefore, it&#39;s appropriate to flag our event loop for exit as well,
-</span><span class=c1></span>	   <span class=c1>// since we won&#39;t be getting any more messages.
-</span><span class=c1></span>	   <span class=n>Process</span><span class=o>::</span><span class=n>requestShutdown</span><span class=p>();</span>
-	   <span class=k>break</span><span class=p>;</span>
-	          <span class=p>}</span>
-</code></pre></div><p>And <code>WM_QUIT</code> is a Windows API event. I&rsquo;m going to infer that this is as close
+the other is:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>	<span class=k>case</span> <span class=nl>WM_QUIT</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>	   <span class=c1>// Quit indicates that we&#39;re not going to receive anymore Win32 messages.
+</span></span></span><span class=line><span class=cl><span class=c1></span>	   <span class=c1>// Therefore, it&#39;s appropriate to flag our event loop for exit as well,
+</span></span></span><span class=line><span class=cl><span class=c1></span>	   <span class=c1>// since we won&#39;t be getting any more messages.
+</span></span></span><span class=line><span class=cl><span class=c1></span>	   <span class=n>Process</span><span class=o>::</span><span class=n>requestShutdown</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>	   <span class=k>break</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>	          <span class=p>}</span>
+</span></span></code></pre></div><p>And <code>WM_QUIT</code> is a Windows API event. I&rsquo;m going to infer that this is as close
 to closure as we&rsquo;ll get. But let&rsquo;s explore this a bit. This code is from
 <code>_dispatch</code>, which is&mldr; well, let&rsquo;s see how it&rsquo;s used. It&rsquo;s called in two places,
 both in that same file (<code>winDispatch.cpp</code>). One is in <code>Dispatch</code>, and one in
-<code>DispatchNext</code>. These are short, so let&rsquo;s check them out:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=c1>// Dispatch the window event, or queue up for later
-</span><span class=c1></span><span class=kt>void</span> <span class=nf>Dispatch</span><span class=p>(</span><span class=n>DispatchType</span> <span class=n>type</span><span class=p>,</span><span class=n>HWND</span> <span class=n>hWnd</span><span class=p>,</span><span class=n>UINT</span> <span class=n>message</span><span class=p>,</span><span class=n>WPARAM</span> <span class=n>wparam</span><span class=p>,</span><span class=n>WPARAM</span> <span class=n>lparam</span><span class=p>)</span>
-<span class=p>{</span>
-   <span class=c1>// If the message queue is not empty, then we&#39;ll need to delay
-</span><span class=c1></span>   <span class=c1>// this dispatch in order to preserve message order.
-</span><span class=c1></span>   <span class=k>if</span> <span class=p>(</span><span class=n>type</span> <span class=o>==</span> <span class=n>DelayedDispatch</span> <span class=o>||</span> <span class=o>!</span><span class=n>_MessageQueue</span><span class=p>.</span><span class=n>isEmpty</span><span class=p>())</span>
-      <span class=n>_MessageQueue</span><span class=p>.</span><span class=n>post</span><span class=p>(</span><span class=n>hWnd</span><span class=p>,</span><span class=n>message</span><span class=p>,</span><span class=n>wparam</span><span class=p>,</span><span class=n>lparam</span><span class=p>);</span>
-   <span class=k>else</span>
-      <span class=n>_dispatch</span><span class=p>(</span><span class=n>hWnd</span><span class=p>,</span><span class=n>message</span><span class=p>,</span><span class=n>wparam</span><span class=p>,</span><span class=n>lparam</span><span class=p>);</span>
-<span class=p>}</span>
-
-<span class=c1>// Dispatch next even in the queue
-</span><span class=c1></span><span class=kt>bool</span> <span class=nf>DispatchNext</span><span class=p>()</span>
-<span class=p>{</span>
-   <span class=n>WinMessageQueue</span><span class=o>::</span><span class=n>Message</span> <span class=n>msg</span><span class=p>;</span>
-   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>_MessageQueue</span><span class=p>.</span><span class=n>next</span><span class=p>(</span><span class=o>&amp;</span><span class=n>msg</span><span class=p>))</span>
-      <span class=k>return</span> <span class=nb>false</span><span class=p>;</span>
-   <span class=n>_dispatch</span><span class=p>(</span><span class=n>msg</span><span class=p>.</span><span class=n>hWnd</span><span class=p>,</span><span class=n>msg</span><span class=p>.</span><span class=n>message</span><span class=p>,</span><span class=n>msg</span><span class=p>.</span><span class=n>wparam</span><span class=p>,</span><span class=n>msg</span><span class=p>.</span><span class=n>lparam</span><span class=p>);</span>
-   <span class=k>return</span> <span class=nb>true</span><span class=p>;</span>
-<span class=p>}</span>
-</code></pre></div><p>So what this looks like to me is that incoming window events go to <code>Dispatch</code>,
+<code>DispatchNext</code>. These are short, so let&rsquo;s check them out:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=c1>// Dispatch the window event, or queue up for later
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>void</span> <span class=nf>Dispatch</span><span class=p>(</span><span class=n>DispatchType</span> <span class=n>type</span><span class=p>,</span><span class=n>HWND</span> <span class=n>hWnd</span><span class=p>,</span><span class=n>UINT</span> <span class=n>message</span><span class=p>,</span><span class=n>WPARAM</span> <span class=n>wparam</span><span class=p>,</span><span class=n>WPARAM</span> <span class=n>lparam</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=c1>// If the message queue is not empty, then we&#39;ll need to delay
+</span></span></span><span class=line><span class=cl><span class=c1></span>   <span class=c1>// this dispatch in order to preserve message order.
+</span></span></span><span class=line><span class=cl><span class=c1></span>   <span class=k>if</span> <span class=p>(</span><span class=n>type</span> <span class=o>==</span> <span class=n>DelayedDispatch</span> <span class=o>||</span> <span class=o>!</span><span class=n>_MessageQueue</span><span class=p>.</span><span class=n>isEmpty</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>      <span class=n>_MessageQueue</span><span class=p>.</span><span class=n>post</span><span class=p>(</span><span class=n>hWnd</span><span class=p>,</span><span class=n>message</span><span class=p>,</span><span class=n>wparam</span><span class=p>,</span><span class=n>lparam</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>   <span class=k>else</span>
+</span></span><span class=line><span class=cl>      <span class=n>_dispatch</span><span class=p>(</span><span class=n>hWnd</span><span class=p>,</span><span class=n>message</span><span class=p>,</span><span class=n>wparam</span><span class=p>,</span><span class=n>lparam</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Dispatch next even in the queue
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=kt>bool</span> <span class=nf>DispatchNext</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=n>WinMessageQueue</span><span class=o>::</span><span class=n>Message</span> <span class=n>msg</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>_MessageQueue</span><span class=p>.</span><span class=n>next</span><span class=p>(</span><span class=o>&amp;</span><span class=n>msg</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=nb>false</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>   <span class=n>_dispatch</span><span class=p>(</span><span class=n>msg</span><span class=p>.</span><span class=n>hWnd</span><span class=p>,</span><span class=n>msg</span><span class=p>.</span><span class=n>message</span><span class=p>,</span><span class=n>msg</span><span class=p>.</span><span class=n>wparam</span><span class=p>,</span><span class=n>msg</span><span class=p>.</span><span class=n>lparam</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>   <span class=k>return</span> <span class=nb>true</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>So what this looks like to me is that incoming window events go to <code>Dispatch</code>,
 where they either get processed immeidately or must wait in a queue. Then I guess
 <code>DispatchNext</code> is called periodically to consume the queue. Let&rsquo;s see where
 <code>Dispatch</code> is called from&mldr; oh shoot, that&rsquo;s lots of calls. Let&rsquo;s not go there.
 Let&rsquo;s look for <code>DispatchNext</code> instead. Ooh, it&rsquo;s only called in one location,
-in <code>win32WindowManager.cpp</code>.</p>
-<p>Atually, let&rsquo;s not follow this particular rabbit-hole. I think we&rsquo;ve learned as
+in <code>win32WindowManager.cpp</code>.</p><p>Atually, let&rsquo;s not follow this particular rabbit-hole. I think we&rsquo;ve learned as
 much as we can from the engine source. It&rsquo;s time to see if we can follow the
-trail through Windows API-land.</p>
-<h2 id=the-windows-api>The Windows API</h2>
-<p>Google <code>PostQuitMessage</code> from all the way back up there. Find <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms644945(v=vs.85).aspx">this</a>
-helpful page. Most pertinently:</p>
-<blockquote>
-<p><em>nExitCode</em> [in]</p>
-<p>Type: <strong>int</strong></p>
-<p>The application exit code. This value is used as the <em>wParam</em> parameter of the
-<strong>WM_QUIT</strong> message.</p>
-</blockquote>
-<p>Okay, so Windows API messages have a parameter. Okay, I&rsquo;m glad we looked up
-<code>Dispatch</code> and <code>DispatchNext</code> above, because of this:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>void</span> <span class=n>Dispatch</span><span class=p>(...,</span> <span class=n>WPARAM</span> <span class=n>wparam</span><span class=p>,</span> <span class=p>...)</span>
-</code></pre></div><p>Ah. So where does that value go when we receive it? Let&rsquo;s jump back into <code>_dispatch</code>
-where we act on the <code>WM_QUIT</code> event by calling <code>Platform::requestShutdown</code>. And&mldr;</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=k>static</span> <span class=kt>bool</span> <span class=n>_dispatch</span><span class=p>(...,</span> <span class=n>WPARAM</span> <span class=n>wParam</span><span class=p>,</span> <span class=p>...)</span>
-</code></pre></div><p>Bingo. So anywhere in <code>_dispatch</code> we can make use of <code>wParam</code>, which seems to
+trail through Windows API-land.</p><h2 id=the-windows-api>The Windows API</h2><p>Google <code>PostQuitMessage</code> from all the way back up there. Find <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms644945(v=vs.85).aspx">this</a>
+helpful page. Most pertinently:</p><blockquote><p><em>nExitCode</em> [in]</p><p>Type: <strong>int</strong></p><p>The application exit code. This value is used as the <em>wParam</em> parameter of the
+<strong>WM_QUIT</strong> message.</p></blockquote><p>Okay, so Windows API messages have a parameter. Okay, I&rsquo;m glad we looked up
+<code>Dispatch</code> and <code>DispatchNext</code> above, because of this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>void</span> <span class=n>Dispatch</span><span class=p>(...,</span> <span class=n>WPARAM</span> <span class=n>wparam</span><span class=p>,</span> <span class=p>...)</span>
+</span></span></code></pre></div><p>Ah. So where does that value go when we receive it? Let&rsquo;s jump back into <code>_dispatch</code>
+where we act on the <code>WM_QUIT</code> event by calling <code>Platform::requestShutdown</code>. And&mldr;</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>static</span> <span class=kt>bool</span> <span class=n>_dispatch</span><span class=p>(...,</span> <span class=n>WPARAM</span> <span class=n>wParam</span><span class=p>,</span> <span class=p>...)</span>
+</span></span></code></pre></div><p>Bingo. So anywhere in <code>_dispatch</code> we can make use of <code>wParam</code>, which seems to
 have type <code>UINT_PTR</code>&mldr; which sounds like a pointer to an unsigned integral type,
-but in any case, we can use it to access the exit status code.</p>
-<p>That&rsquo;s where I&rsquo;ll leave this safari, as the rest is mechanically adding more code
-to store and make use of the status code.</p>
-</div>
-<hr>
-<p class=site-subtitle>fin</p>
-</div>
-</div>
-</body>
-</html>
+but in any case, we can use it to access the exit status code.</p><p>That&rsquo;s where I&rsquo;ll leave this safari, as the rest is mechanically adding more code
+to store and make use of the status code.</p></div><hr><p class=site-subtitle>fin</p></div></div></body></html>

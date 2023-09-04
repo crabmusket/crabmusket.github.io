@@ -1,131 +1,51 @@
-<!doctype html><html lang=en>
-<head>
-<meta charset=utf-8>
-<meta http-equiv=x-ua-compatible content="ie=edge">
-<title>Development versus deployment: Docker and Haskell &mdash; the crab & musket</title>
-<meta name=description content>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<link href=/css/main.css rel=stylesheet>
-<meta property="og:url" content="/blog/development-versus-deployment-docker-and-haskell/">
-<meta property="og:type" content="article">
-<meta property="og:title" content="Development versus deployment: Docker and Haskell">
-<meta property="article:published_time" content="2015-07-10T00:00:00+00:00Z">
-<meta property="og:description" content="This post was prompted by a recent discussion about using Docker for Haskell development. The question was: how do I develop quickly using Docker, and avoid waiting for the container to be rebuilt all the time?">
-<meta name=twitter:card content="summary">
-<meta name=twitter:creator content="@crabmusket">
-<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
-<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
-<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
-</head>
-<body>
-<div class=container>
-<a href=/blog>
-<h1 class=site-title>
-<span class=site-title__prefix>the</span>
-crab & musket
-</h1>
-</a>
-<hr>
-<div class=content>
-<div class=post-header>
-<h2 class=post-header__title>Development versus deployment: Docker and Haskell</h2>
-<span class=post-header__date>July 10, 2015</span>
-</div>
-<div class=post>
-<p>This post was prompted by a <a href=https://www.reddit.com/r/haskell/comments/3bmzn8/how_can_i_improve_build_time_especially_on_docker/>recent discussion</a> about using Docker for Haskell development.
+<!doctype html><html lang=en><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="ie=edge"><title>Development versus deployment: Docker and Haskell &mdash; the crab & musket</title><meta name=description content><meta name=viewport content="width=device-width,initial-scale=1"><link href=/css/main.css rel=stylesheet><meta property="og:url" content="/blog/development-versus-deployment-docker-and-haskell/"><meta property="og:type" content="article"><meta property="og:title" content="Development versus deployment: Docker and Haskell"><meta property="article:published_time" content="2015-07-10T00:00:00+00:00Z"><meta property="og:description" content="This post was prompted by a recent discussion about using Docker for Haskell development. The question was: how do I develop quickly using Docker, and avoid waiting for the container to be rebuilt all the time?"><meta name=twitter:card content="summary"><meta name=twitter:creator content="@crabmusket"><link rel=webmention href=https://webmention.io/crabmusket.net/webmention><link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc><link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket"></head><body><div class=container><a href=/blog><h1 class=site-title><span class=site-title__prefix>the</span>
+crab & musket</h1></a><hr><div class=content><div class=post-header><h2 class=post-header__title>Development versus deployment: Docker and Haskell</h2><span class=post-header__date>July 10, 2015</span></div><div class=post><p>This post was prompted by a <a href=https://www.reddit.com/r/haskell/comments/3bmzn8/how_can_i_improve_build_time_especially_on_docker/>recent discussion</a> about using Docker for Haskell development.
 The question was: how do I develop quickly using Docker, and avoid waiting for the container to be rebuilt all the time?
-My answer is that you should develop in one container, and deploy an <em>entirely different</em> container.</p>
-<p>Now, this does sound odd, given that Docker was supposed to be the great equaliser between development and production environments.
+My answer is that you should develop in one container, and deploy an <em>entirely different</em> container.</p><p>Now, this does sound odd, given that Docker was supposed to be the great equaliser between development and production environments.
 Docker sells itself on the idea that when we deploy a container, we&rsquo;re deploying to the exact environment that we developed and tested in.
-There are two comments I&rsquo;d like to make about this:</p>
-<ul>
-<li>For compiled applications, environment matters less than applications that depend on a language runtime.</li>
-<li>You <em>should</em> be testing the containers that you deploy to production, even if they&rsquo;re not the containers you did development in.</li>
-</ul>
-<p>With those points in mind, here&rsquo;s my process for using Docker for developing and deploying Haskell.</p>
-<h1 id=development>Development</h1>
-<p>I&rsquo;m pretty frugal in my development environment, which makes this workflow simpler.
-When I want to start a new Haskell project, I spin up one of the standard containers available on the Docker Hub:</p>
-<pre><code>$ docker run -ti --rm -v $(pwd):/code haskell:7.10 bash
+There are two comments I&rsquo;d like to make about this:</p><ul><li>For compiled applications, environment matters less than applications that depend on a language runtime.</li><li>You <em>should</em> be testing the containers that you deploy to production, even if they&rsquo;re not the containers you did development in.</li></ul><p>With those points in mind, here&rsquo;s my process for using Docker for developing and deploying Haskell.</p><h1 id=development>Development</h1><p>I&rsquo;m pretty frugal in my development environment, which makes this workflow simpler.
+When I want to start a new Haskell project, I spin up one of the standard containers available on the Docker Hub:</p><pre><code>$ docker run -ti --rm -v $(pwd):/code haskell:7.10 bash
 # cd code
 # cabal update
 # cabal sandbox init
 # cabal init
-</code></pre>
-<p>And so on.
+</code></pre><p>And so on.
 Notice that I use the <code>--rm</code> flag; this removes the container immediately after I close the bash session I&rsquo;m using.
 I like to make sure all my containers are stateless, and never leave containers about that I&rsquo;m not actively working in.
 Cabal sandboxes let me do this, by keeping my entire build inside the mounted <code>/code</code> volume.
-This way, next time I spin up a fresh container, I don&rsquo;t have to reinstall.</p>
-<p>Note that I <em>do</em> have to run <code>cabal update</code> again, if I want to install more libraries in a fresh container.
-This is a slight annoyance, but I usually do it in that foggy minute right after I re-open my source files and try to get my head back to where it was yesterday.</p>
-<h2 id=what-about-yesod-devel>What about <code>yesod devel</code>?</h2>
-<p>Ah yes.
+This way, next time I spin up a fresh container, I don&rsquo;t have to reinstall.</p><p>Note that I <em>do</em> have to run <code>cabal update</code> again, if I want to install more libraries in a fresh container.
+This is a slight annoyance, but I usually do it in that foggy minute right after I re-open my source files and try to get my head back to where it was yesterday.</p><h2 id=what-about-yesod-devel>What about <code>yesod devel</code>?</h2><p>Ah yes.
 Some projects might require specific binaries installed, like the <code>yesod</code> set of tools, or even your favourite editor, <code>ghc-mod</code>, etc.
 I do most of my Haskelling without any such tools, and I edit in my host, not inside the container.
-But if I <em>were</em> going to use them, I&rsquo;d make my own container to do so, which I could use in place of the vanilla container:</p>
-<pre><code>$ docker run -ti --rm -v $(pwd):/code eightyeight/hypothetical-yesod-container:7.10 bash
-</code></pre>
-<p>This container would be built from a Dockerfile in its own directory elsewhere, not from this current project&rsquo;s Dockerfile.</p>
-<p>I&rsquo;ll admit this is a little bit of a weak solution - for instance, it&rsquo;d be better to ensure that the version of <code>yesod devel</code> was the correct one as specified in your project&rsquo;s Cabal file.
-My <em>tentative</em> recommendation for this is to try to install all binaries in the Cabal sandbox, and set your path so that you can run them as usual.</p>
-<p>I&rsquo;ve never tried this in a Haskell project, so I can&rsquo;t exactly sell this as a complete solution, but this is the approach I take with Node projects.
-I avoid installing (e.g.) <code>gulp</code> globally, and instead create <code>npm</code> scripts that run <code>gulp</code> from the local <code>node_modules</code> folder.</p>
-<h2 id=just-write-your-dockerfile-properly>Just write your Dockerfile properly!</h2>
-<p>At this point if you&rsquo;re familiar with Docker at all, you might have realised that the answer to needing to rebuild the container constantly is usually to stop changing your Dockerfile all the time.
+But if I <em>were</em> going to use them, I&rsquo;d make my own container to do so, which I could use in place of the vanilla container:</p><pre><code>$ docker run -ti --rm -v $(pwd):/code eightyeight/hypothetical-yesod-container:7.10 bash
+</code></pre><p>This container would be built from a Dockerfile in its own directory elsewhere, not from this current project&rsquo;s Dockerfile.</p><p>I&rsquo;ll admit this is a little bit of a weak solution - for instance, it&rsquo;d be better to ensure that the version of <code>yesod devel</code> was the correct one as specified in your project&rsquo;s Cabal file.
+My <em>tentative</em> recommendation for this is to try to install all binaries in the Cabal sandbox, and set your path so that you can run them as usual.</p><p>I&rsquo;ve never tried this in a Haskell project, so I can&rsquo;t exactly sell this as a complete solution, but this is the approach I take with Node projects.
+I avoid installing (e.g.) <code>gulp</code> globally, and instead create <code>npm</code> scripts that run <code>gulp</code> from the local <code>node_modules</code> folder.</p><h2 id=just-write-your-dockerfile-properly>Just write your Dockerfile properly!</h2><p>At this point if you&rsquo;re familiar with Docker at all, you might have realised that the answer to needing to rebuild the container constantly is usually to stop changing your Dockerfile all the time.
 After all, Docker is really great at using cached layers when your files haven&rsquo;t changed.
-If you simply order the commands in your Dockerfile correctly, you should be able to avoid pretty much all the pain!</p>
-<p>The <a href=https://registry.hub.docker.com/_/haskell/>official Haskell image</a> readme shows you how to do this.
-You first add your Cabal file to the project, which creates a layer:</p>
-<pre><code>ADD example.cabal /code/snap-example.cabal
-</code></pre>
-<p>You then install all dependencies, creating another layer:</p>
-<pre><code>RUN cd /code &amp;&amp; cabal install --only-dependencies -j4
-</code></pre>
-<p>This will only re-run after you change your Cabal file.
-Note that obviously Docker can&rsquo;t actually analyse the contents of your Cabal file and determine whether you&rsquo;ve changed your dependencies, but it&rsquo;ll notice that the file is different, and that will invalidate the cache and re-run the install command.</p>
-<p>Then, finally, you add the rest of your application code, and compile it:</p>
-<pre><code>ADD . /code
+If you simply order the commands in your Dockerfile correctly, you should be able to avoid pretty much all the pain!</p><p>The <a href=https://registry.hub.docker.com/_/haskell/>official Haskell image</a> readme shows you how to do this.
+You first add your Cabal file to the project, which creates a layer:</p><pre><code>ADD example.cabal /code/snap-example.cabal
+</code></pre><p>You then install all dependencies, creating another layer:</p><pre><code>RUN cd /code &amp;&amp; cabal install --only-dependencies -j4
+</code></pre><p>This will only re-run after you change your Cabal file.
+Note that obviously Docker can&rsquo;t actually analyse the contents of your Cabal file and determine whether you&rsquo;ve changed your dependencies, but it&rsquo;ll notice that the file is different, and that will invalidate the cache and re-run the install command.</p><p>Then, finally, you add the rest of your application code, and compile it:</p><pre><code>ADD . /code
 RUN cd /code &amp;&amp; cabal install
-</code></pre>
-<p>This structure maximises your Docker cache usage, by ensuring that you only re-create the final layer when you change your code.
-However, even though this does provide an advantage, I still think we should go further when building applications for deployment.</p>
-<h1 id=deployment>Deployment</h1>
-<p>As I&rsquo;ve started to deploy Docker containers others have built, I&rsquo;m starting to run into many cases of containers, particularly ones packing Go applications, that are based on the <code>golang</code> official container.
+</code></pre><p>This structure maximises your Docker cache usage, by ensuring that you only re-create the final layer when you change your code.
+However, even though this does provide an advantage, I still think we should go further when building applications for deployment.</p><h1 id=deployment>Deployment</h1><p>As I&rsquo;ve started to deploy Docker containers others have built, I&rsquo;m starting to run into many cases of containers, particularly ones packing Go applications, that are based on the <code>golang</code> official container.
 I&rsquo;ve seen this with Haskell containers, too.
-The advice in the previous section (which I took straight from the official readme) certainly suggests that the first line of your application&rsquo;s Dockerfile should be <code>FROM haskell</code>.</p>
-<p>I contend that this is bad container etiquette.
+The advice in the previous section (which I took straight from the official readme) certainly suggests that the first line of your application&rsquo;s Dockerfile should be <code>FROM haskell</code>.</p><p>I contend that this is bad container etiquette.
 When I go to install your application, I&rsquo;ve now just downloaded, in the case of a Haskell application, 700MB.
 This includes an operating system, GHC, its attendant infrastructure, and also your application&rsquo;s source code.
-But your application is actually just a single binary that&rsquo;s probably less than 70MB.</p>
-<p>I firmly believe that for deployment containers, you should not be starting <code>FROM haskell</code>, but <code>FROM haskell-scratch</code>.
+But your application is actually just a single binary that&rsquo;s probably less than 70MB.</p><p>I firmly believe that for deployment containers, you should not be starting <code>FROM haskell</code>, but <code>FROM haskell-scratch</code>.
 <a href=https://github.com/snoyberg/haskell-scratch>haskell-scratch</a> is a cute little project that lets you create a minimal Docker container with only the shared libraries needed to run Haskell binaries compiled with GHC.
-This means that you can start with a Docker container that&rsquo;s essentially empty and add nothing but your executable to it.</p>
-<p>(NB: sometimes, <code>haskell-scratch</code> may be <em>too</em> minimal, as <a href=https://www.reddit.com/r/haskell/comments/3crcq7/development_versus_deployment_docker_and_haskell/csyaa4j>/u/insitu notes</a>.
-You might consider using <code>busybox</code> instead.)</p>
-<p>The workflow is slightly more complex.
+This means that you can start with a Docker container that&rsquo;s essentially empty and add nothing but your executable to it.</p><p>(NB: sometimes, <code>haskell-scratch</code> may be <em>too</em> minimal, as <a href=https://www.reddit.com/r/haskell/comments/3crcq7/development_versus_deployment_docker_and_haskell/csyaa4j>/u/insitu notes</a>.
+You might consider using <code>busybox</code> instead.)</p><p>The workflow is slightly more complex.
 To start using <code>haskell-scratch</code>, you&rsquo;ll need to compile it yourself locally, as there&rsquo;s no Docker Hub image.
-However, this is as simple as cloning <a href=https://github.com/snoyberg/haskell-scratch>the repository</a> to your computer and running <code>make</code>.</p>
-<p>This will create two Docker images in your local Docker database: <code>haskell-scratch:integer-simple</code> and <code>haskell-scratch:integer-gmp</code>, containing linkages to the two different big-int libraries GHC can use.
-Deploying an application using this library is as simple as this Dockerfile:</p>
-<pre><code>FROM haskell-scratch:integer-simple
+However, this is as simple as cloning <a href=https://github.com/snoyberg/haskell-scratch>the repository</a> to your computer and running <code>make</code>.</p><p>This will create two Docker images in your local Docker database: <code>haskell-scratch:integer-simple</code> and <code>haskell-scratch:integer-gmp</code>, containing linkages to the two different big-int libraries GHC can use.
+Deploying an application using this library is as simple as this Dockerfile:</p><pre><code>FROM haskell-scratch:integer-simple
 COPY dist/build/example/example /bin/example
 ENTRYPOINT [&quot;/bin/example&quot;]
-</code></pre>
-<p>In fact, I did this exact thing in my <a href=https://github.com/eightyeight/srvr>small server example</a>.
-I needed a tiny lightweight demo server which I could configure from the command-line, and I didn&rsquo;t want to wait for all of GHC to download.</p>
-<p>To build your application, you must first compile the executable from your development Docker container (the one that <em>is</em> based on <code>haskell</code>), then run <code>docker build</code> outside that container to copy the binary into the deployment image.</p>
-<p>I really think this is an advantageous workflow.
+</code></pre><p>In fact, I did this exact thing in my <a href=https://github.com/eightyeight/srvr>small server example</a>.
+I needed a tiny lightweight demo server which I could configure from the command-line, and I didn&rsquo;t want to wait for all of GHC to download.</p><p>To build your application, you must first compile the executable from your development Docker container (the one that <em>is</em> based on <code>haskell</code>), then run <code>docker build</code> outside that container to copy the binary into the deployment image.</p><p>I really think this is an advantageous workflow.
 I&rsquo;d love to hear the opinions of more experienced Haskellers and Docker-ers.
-I haven&rsquo;t thought about how <a href=https://github.com/commercialhaskell/stack>stack</a> will impact this workflow; for me, my current setup is fine for small projects, but I have no doubt that this approach will start to break down on larger projects, multiple binaries, etc.</p>
-<h1 id=prior-art>Prior art</h1>
-<p>I should acknowledge two main influences on this post.
+I haven&rsquo;t thought about how <a href=https://github.com/commercialhaskell/stack>stack</a> will impact this workflow; for me, my current setup is fine for small projects, but I have no doubt that this approach will start to break down on larger projects, multiple binaries, etc.</p><h1 id=prior-art>Prior art</h1><p>I should acknowledge two main influences on this post.
 First and foremost, the FP complete article <a href=https://www.fpcomplete.com/blog/2015/05/haskell-web-server-in-5mb>a Haskell web server in a 5MB Docker container</a>, which introduced the <code>haskell-scratch</code> project.
-And secondly, <a href=http://blog.xebia.com/2014/07/04/create-the-smallest-possible-docker-container/>this great article</a> about using <code>scratch</code>, the <em>actually empty</em> Docker container, to deploy Go applications.</p>
-</div>
-<hr>
-<p class=site-subtitle>fin</p>
-</div>
-</div>
-</body>
-</html>
+And secondly, <a href=http://blog.xebia.com/2014/07/04/create-the-smallest-possible-docker-container/>this great article</a> about using <code>scratch</code>, the <em>actually empty</em> Docker container, to deploy Go applications.</p></div><hr><p class=site-subtitle>fin</p></div></div></body></html>

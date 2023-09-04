@@ -1,273 +1,191 @@
-<!doctype html><html lang=en>
-<head>
-<meta charset=utf-8>
-<meta http-equiv=x-ua-compatible content="ie=edge">
-<title>The Torque 3D unit testing system - a safari &mdash; the crab & musket</title>
-<meta name=description content>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<link href=/css/main.css rel=stylesheet>
-<meta property="og:url" content="/blog/torque-3d-unit-testing-system/">
-<meta property="og:type" content="article">
-<meta property="og:title" content="The Torque 3D unit testing system - a safari">
-<meta property="article:published_time" content="2014-06-22T00:00:00+00:00Z">
-<meta name=twitter:card content="summary">
-<meta name=twitter:creator content="@crabmusket">
-<link rel=webmention href=https://webmention.io/crabmusket.net/webmention>
-<link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc>
-<link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket">
-</head>
-<body>
-<div class=container>
-<a href=/blog>
-<h1 class=site-title>
-<span class=site-title__prefix>the</span>
-crab & musket
-</h1>
-</a>
-<hr>
-<div class=content>
-<div class=post-header>
-<h2 class=post-header__title>The Torque 3D unit testing system - a safari</h2>
-<span class=post-header__date>June 22, 2014</span>
-</div>
-<div class=post>
-<p>This is the first in a series of experimental posts that explore some of <a href=http://torque3d.org>Torque
+<!doctype html><html lang=en><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="ie=edge"><title>The Torque 3D unit testing system - a safari &mdash; the crab & musket</title><meta name=description content><meta name=viewport content="width=device-width,initial-scale=1"><link href=/css/main.css rel=stylesheet><meta property="og:url" content="/blog/torque-3d-unit-testing-system/"><meta property="og:type" content="article"><meta property="og:title" content="The Torque 3D unit testing system - a safari"><meta property="article:published_time" content="2014-06-22T00:00:00+00:00Z"><meta name=twitter:card content="summary"><meta name=twitter:creator content="@crabmusket"><link rel=webmention href=https://webmention.io/crabmusket.net/webmention><link rel=pingback href=https://webmention.io/crabmusket.net/xmlrpc><link rel=alternate type=application/rss+xml href=/blog/index.xml title="the crab & musket"></head><body><div class=container><a href=/blog><h1 class=site-title><span class=site-title__prefix>the</span>
+crab & musket</h1></a><hr><div class=content><div class=post-header><h2 class=post-header__title>The Torque 3D unit testing system - a safari</h2><span class=post-header__date>June 22, 2014</span></div><div class=post><p>This is the first in a series of experimental posts that explore some of <a href=http://torque3d.org>Torque
 3D</a>&rsquo;s subsystems. It&rsquo;s going to be written in a nearly stream-of-consciousness
 style as I explore the system myself, and there&rsquo;ll be relatively little editing.
 This is an experiment to provide more organic engine documentation. I&rsquo;ve picked
 an easy first subject, the unit testing framework, because I&rsquo;m currently <a href=https://github.com/GarageGames/Torque3D/issues/626>replacing
 it</a> with <a href=https://code.google.com/p/googletest/>Google Test</a>, and figured this would be a good way for me to get to
-know the extent of the code I&rsquo;ll be touching.</p>
-<p>We&rsquo;ll mostly be looking at <a href=https://github.com/GarageGames/Torque3D/blob/feec36731ef870c36084fd08c1cd53865aa01ad4/Engine/source/unit/test.h>unit/test.h</a> and <a href=https://github.com/GarageGames/Torque3D/blob/feec36731ef870c36084fd08c1cd53865aa01ad4/Engine/source/unit/test.cpp>unit/test.cpp</a> so go ahead and
-have them open and ready for your perusal.</p>
-<h2 id=entry-point>Entry point</h2>
-<p>I search for <code>unitTest_runTests</code> because that&rsquo;s what we call from the console to
+know the extent of the code I&rsquo;ll be touching.</p><p>We&rsquo;ll mostly be looking at <a href=https://github.com/GarageGames/Torque3D/blob/feec36731ef870c36084fd08c1cd53865aa01ad4/Engine/source/unit/test.h>unit/test.h</a> and <a href=https://github.com/GarageGames/Torque3D/blob/feec36731ef870c36084fd08c1cd53865aa01ad4/Engine/source/unit/test.cpp>unit/test.cpp</a> so go ahead and
+have them open and ready for your perusal.</p><h2 id=entry-point>Entry point</h2><p>I search for <code>unitTest_runTests</code> because that&rsquo;s what we call from the console to
 run tests. Search for text in &lsquo;current solution&rsquo;. Choose the line with a
 <code>ConsoleFunction</code> definition because that defines the console function, yo. It
 lives in <code>unit/consoleTest.cpp</code>. It creates a <code>TestRun</code> and calls <code>test</code> with
-the two arguments, <code>searchString</code> and <code>skipInteractive</code>.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>TestRun</span> <span class=n>tr</span><span class=p>;</span>
-<span class=k>return</span> <span class=n>tr</span><span class=p>.</span><span class=n>test</span><span class=p>(</span><span class=n>searchString</span><span class=p>,</span> <span class=n>skip</span><span class=p>);</span>
-</code></pre></div><h2 id=testrun-class>TestRun class</h2>
-<p><code>TestRun</code> is defined in <code>unit/test.h</code>. Everything in here is in the <code>UnitTesting</code>
+the two arguments, <code>searchString</code> and <code>skipInteractive</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>TestRun</span> <span class=n>tr</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=k>return</span> <span class=n>tr</span><span class=p>.</span><span class=n>test</span><span class=p>(</span><span class=n>searchString</span><span class=p>,</span> <span class=n>skip</span><span class=p>);</span>
+</span></span></code></pre></div><h2 id=testrun-class>TestRun class</h2><p><code>TestRun</code> is defined in <code>unit/test.h</code>. Everything in here is in the <code>UnitTesting</code>
 namespace. This class includes members <code>_testCount</code>, <code>_failureCount</code>, etc. The
 <code>test</code> method has two overloads, a public version which is called with the two
-parameters above, and a private version that takes a <code>TestRegistry</code>.</p>
-<h3 id=public-test-method>Public <code>test</code> method</h3>
-<p>The public one iterates over everything in <code>TestRegistry::getFirst()</code>, which is
+parameters above, and a private version that takes a <code>TestRegistry</code>.</p><h3 id=public-test-method>Public <code>test</code> method</h3><p>The public one iterates over everything in <code>TestRegistry::getFirst()</code>, which is
 evidently some static list of all unit tests the engine knows about, and calls
-the private <code>test</code> on each one.</p>
-<p>Note that the <code>cwd</code> is set to the executable or <code>main.cs</code> directory before each
+the private <code>test</code> on each one.</p><p>Note that the <code>cwd</code> is set to the executable or <code>main.cs</code> directory before each
 call to the private <code>test</code>. The <code>cwd</code> is restored after the test run to whatever
-it was before the testing started.</p>
-<p>We then <code>printStats</code> and call <code>Process::provessEvents()</code> which has the comment
+it was before the testing started.</p><p>We then <code>printStats</code> and call <code>Process::provessEvents()</code> which has the comment
 <code>sanity check for avoid Process::requestShutdown() called on some tests</code>. I think
-Luis added this recently to avoid a crash. Investigte later.</p>
-<p>It returns <code>!_failureCount</code>.</p>
-<h3 id=private-test-method>Private <code>test</code> method</h3>
-<p>The private <code>test</code> method first does <code>UnitMargin::Push</code> which seems mysterious.
+Luis added this recently to avoid a crash. Investigte later.</p><p>It returns <code>!_failureCount</code>.</p><h3 id=private-test-method>Private <code>test</code> method</h3><p>The private <code>test</code> method first does <code>UnitMargin::Push</code> which seems mysterious.
 It then creates a <code>new UnitTest*</code> by calling <code>newTest</code> on the <code>TestRegistration</code>
 is is passed, then calls <code>run</code> on that <code>UnitTest</code>. And then <code>UnitMargin::Pop</code>.
 <code>_failureCount</code> and friends are updated from the properties of the <code>UnitTest</code>
-object, which is then deleted.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>UnitMargin</span><span class=o>::</span><span class=n>Push</span><span class=p>(</span><span class=n>_Margin</span><span class=p>[</span><span class=mi>0</span><span class=p>]);</span>
-
-<span class=c1>// Run the test.
-</span><span class=c1></span><span class=n>UnitTest</span><span class=o>*</span> <span class=n>test</span> <span class=o>=</span> <span class=n>reg</span><span class=o>-&gt;</span><span class=n>newTest</span><span class=p>();</span>
-<span class=n>test</span><span class=o>-&gt;</span><span class=n>run</span><span class=p>();</span>
-
-<span class=n>UnitMargin</span><span class=o>::</span><span class=n>Pop</span><span class=p>();</span>
-</code></pre></div><p>Okay, what&rsquo;s this <code>UnitMargin</code>?</p>
-<h3 id=unitmargin-struct>UnitMargin struct</h3>
-<p>Oh gosh global variables everywhere. Why is there
+object, which is then deleted.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>UnitMargin</span><span class=o>::</span><span class=n>Push</span><span class=p>(</span><span class=n>_Margin</span><span class=p>[</span><span class=mi>0</span><span class=p>]);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// Run the test.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>UnitTest</span><span class=o>*</span> <span class=n>test</span> <span class=o>=</span> <span class=n>reg</span><span class=o>-&gt;</span><span class=n>newTest</span><span class=p>();</span>
+</span></span><span class=line><span class=cl><span class=n>test</span><span class=o>-&gt;</span><span class=n>run</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>UnitMargin</span><span class=o>::</span><span class=n>Pop</span><span class=p>();</span>
+</span></span></code></pre></div><p>Okay, what&rsquo;s this <code>UnitMargin</code>?</p><h3 id=unitmargin-struct>UnitMargin struct</h3><p>Oh gosh global variables everywhere. Why is there
 a struct for the methods that operate on global variables? Okay it looks like
 what this is actually doing is filling the <code>_MarginString</code> with spaces up to
 the size of <code>_MarginPtr</code>&rsquo;s first element. But <code>_MarginPtr</code> is an array so it can
 remember the size of each margin added when <code>pop</code> is called. It can be nested 32
 times. <code>_printMargin</code> is ised to <code>frwite</code> the <code>_MarginString</code> to <code>stdout</code>. So
 basicaly it just lets us print spaces before a line. I guess we&rsquo;ll see where it&rsquo;s
-used later.</p>
-<h3 id=testregistration-class>TestRegistration class</h3>
-<p>Let&rsquo;s see what <code>TestRegistration::newTest</code> does.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=k>template</span><span class=o>&lt;</span><span class=k>class</span> <span class=nc>T</span><span class=o>&gt;</span>
-<span class=k>class</span> <span class=nc>TestRegistration</span><span class=o>:</span> <span class=k>public</span> <span class=n>TestRegistry</span>
-<span class=p>{</span>
-   <span class=p>...</span>
-
-   <span class=k>virtual</span> <span class=n>UnitTest</span><span class=o>*</span> <span class=n>newTest</span><span class=p>()</span> 
-   <span class=p>{</span> 
-      <span class=k>return</span> <span class=k>new</span> <span class=n>T</span><span class=p>;</span> 
-   <span class=p>}</span>
-</code></pre></div><p>Right, so it just constructs some instance of the template type that this test
+used later.</p><h3 id=testregistration-class>TestRegistration class</h3><p>Let&rsquo;s see what <code>TestRegistration::newTest</code> does.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>template</span><span class=o>&lt;</span><span class=k>class</span> <span class=nc>T</span><span class=o>&gt;</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TestRegistration</span><span class=o>:</span> <span class=k>public</span> <span class=n>TestRegistry</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=p>...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=k>virtual</span> <span class=n>UnitTest</span><span class=o>*</span> <span class=n>newTest</span><span class=p>()</span> 
+</span></span><span class=line><span class=cl>   <span class=p>{</span> 
+</span></span><span class=line><span class=cl>      <span class=k>return</span> <span class=k>new</span> <span class=n>T</span><span class=p>;</span> 
+</span></span><span class=line><span class=cl>   <span class=p>}</span>
+</span></span></code></pre></div><p>Right, so it just constructs some instance of the template type that this test
 registration is of. Which must be a subclass of <code>UnitTest</code>. Let&rsquo;s detour for a
-second to a macro back in <code>test.h</code>:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=cp>#define CreateUnitTest(Class,Name) \
-</span><span class=cp>   class Class; \
-</span><span class=cp>   static UnitTesting::TestRegistration&lt;Class&gt; _UnitTester##Class (Name, false, #Class); \
-</span><span class=cp>   class Class : public UnitTesting::UnitTest
-</span></code></pre></div><p>So the <code>CreateUnitTest</code> macro starts a clas definition for a subclass of <code>UnitTest</code>
+second to a macro back in <code>test.h</code>:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=cp>#define CreateUnitTest(Class,Name) \
+</span></span></span><span class=line><span class=cl><span class=cp>   class Class; \
+</span></span></span><span class=line><span class=cl><span class=cp>   static UnitTesting::TestRegistration&lt;Class&gt; _UnitTester##Class (Name, false, #Class); \
+</span></span></span><span class=line><span class=cl><span class=cp>   class Class : public UnitTesting::UnitTest
+</span></span></span></code></pre></div><p>So the <code>CreateUnitTest</code> macro starts a clas definition for a subclass of <code>UnitTest</code>
 and also creates a static <code>TestRegistration</code> object. Its constructor is actually
-empty:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>TestRegistration</span><span class=p>(</span><span class=k>const</span> <span class=kt>char</span><span class=o>*</span> <span class=n>name</span><span class=p>,</span> <span class=kt>bool</span> <span class=n>interactive</span><span class=p>,</span> <span class=k>const</span> <span class=kt>char</span> <span class=o>*</span><span class=n>className</span><span class=p>)</span>
-   <span class=o>:</span> <span class=n>TestRegistry</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>interactive</span><span class=p>,</span> <span class=n>className</span><span class=p>)</span> 
-<span class=p>{</span>
-<span class=p>}</span>
-</code></pre></div><p>so let&rsquo;s go have a look at <code>TestRegistry</code>. It does a bunch of stuff including
+empty:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>TestRegistration</span><span class=p>(</span><span class=k>const</span> <span class=kt>char</span><span class=o>*</span> <span class=n>name</span><span class=p>,</span> <span class=kt>bool</span> <span class=n>interactive</span><span class=p>,</span> <span class=k>const</span> <span class=kt>char</span> <span class=o>*</span><span class=n>className</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>   <span class=o>:</span> <span class=n>TestRegistry</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>interactive</span><span class=p>,</span> <span class=n>className</span><span class=p>)</span> 
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>so let&rsquo;s go have a look at <code>TestRegistry</code>. It does a bunch of stuff including
 making sure there is no conflicting test name, and then adds the new object to
 <code>TestRegistry::_list</code>, which I infer is a linked list of tests that we should
-be able to access using&mldr;</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp>   <span class=k>static</span> <span class=n>TestRegistry</span> <span class=o>*</span><span class=n>_list</span><span class=p>;</span>
-<span class=k>public</span><span class=o>:</span>
-   <span class=k>static</span> <span class=n>TestRegistry</span><span class=o>*</span> <span class=n>getFirst</span><span class=p>()</span> <span class=p>{</span> <span class=k>return</span> <span class=n>_list</span><span class=p>;</span> <span class=p>}</span>
-</code></pre></div><p>Okay, so that makes sense. Let&rsquo;s check out an example of a unit test, then. Oh,
-but before we do, I want to point out this gem:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=k>friend</span> <span class=k>class</span> <span class=nc>DynamicTestRegistration</span><span class=p>;</span> <span class=c1>// Bless me, Father, for I have sinned, but this is damn cool
-</span></code></pre></div><h2 id=a-unit-test>A unit test</h2>
-<p>To find unit tests I &lsquo;find all references&rsquo; on <code>namespace UnitTesting</code>. Likely
+be able to access using&mldr;</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>   <span class=k>static</span> <span class=n>TestRegistry</span> <span class=o>*</span><span class=n>_list</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=k>public</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>   <span class=k>static</span> <span class=n>TestRegistry</span><span class=o>*</span> <span class=n>getFirst</span><span class=p>()</span> <span class=p>{</span> <span class=k>return</span> <span class=n>_list</span><span class=p>;</span> <span class=p>}</span>
+</span></span></code></pre></div><p>Okay, so that makes sense. Let&rsquo;s check out an example of a unit test, then. Oh,
+but before we do, I want to point out this gem:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>friend</span> <span class=k>class</span> <span class=nc>DynamicTestRegistration</span><span class=p>;</span> <span class=c1>// Bless me, Father, for I have sinned, but this is damn cool
+</span></span></span></code></pre></div><h2 id=a-unit-test>A unit test</h2><p>To find unit tests I &lsquo;find all references&rsquo; on <code>namespace UnitTesting</code>. Likely
 candidates are probably anywhere that&rsquo;s <code>using namespace UnitTesting</code>.
-<code>testbasictypes.cpp</code> sounds like an easy place to start.</p>
-<h3 id=an-example>An example</h3>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>CreateUnitTest</span><span class=p>(</span><span class=n>CheckTypeSizes</span><span class=p>,</span> <span class=s>&#34;Platform/Types/Sizes&#34;</span><span class=p>)</span>
-<span class=p>{</span>
-   <span class=kt>void</span> <span class=nf>run</span><span class=p>()</span>
-   <span class=p>{</span>
-      <span class=c1>// Run through all the types and ensure they&#39;re the right size.
-</span><span class=c1></span>
-<span class=cp>#define CheckType(typeName, expectedSize) \
-</span><span class=cp>               test( sizeof(typeName) == expectedSize, &#34;Wrong size for a &#34; #typeName &#34;, expected &#34; #expectedSize);
-</span><span class=cp></span>
-      <span class=c1>// One byte types.
-</span><span class=c1></span>      <span class=n>CheckType</span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span> <span class=mi>1</span><span class=p>);</span>
-      <span class=n>CheckType</span><span class=p>(</span><span class=n>U8</span><span class=p>,</span>   <span class=mi>1</span><span class=p>);</span>
-      <span class=n>CheckType</span><span class=p>(</span><span class=n>S8</span><span class=p>,</span>   <span class=mi>1</span><span class=p>);</span>
-      <span class=n>CheckType</span><span class=p>(</span><span class=n>UTF8</span><span class=p>,</span> <span class=mi>1</span><span class=p>);</span>
-</code></pre></div><p>Okay, fairly simple. A <code>UnitTest</code> calls its own <code>test</code> method to assert that
+<code>testbasictypes.cpp</code> sounds like an easy place to start.</p><h3 id=an-example>An example</h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>CreateUnitTest</span><span class=p>(</span><span class=n>CheckTypeSizes</span><span class=p>,</span> <span class=s>&#34;Platform/Types/Sizes&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=kt>void</span> <span class=nf>run</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>   <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// Run through all the types and ensure they&#39;re the right size.
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=cp>#define CheckType(typeName, expectedSize) \
+</span></span></span><span class=line><span class=cl><span class=cp>               test( sizeof(typeName) == expectedSize, &#34;Wrong size for a &#34; #typeName &#34;, expected &#34; #expectedSize);
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl>      <span class=c1>// One byte types.
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=n>CheckType</span><span class=p>(</span><span class=kt>bool</span><span class=p>,</span> <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=n>CheckType</span><span class=p>(</span><span class=n>U8</span><span class=p>,</span>   <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=n>CheckType</span><span class=p>(</span><span class=n>S8</span><span class=p>,</span>   <span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>      <span class=n>CheckType</span><span class=p>(</span><span class=n>UTF8</span><span class=p>,</span> <span class=mi>1</span><span class=p>);</span>
+</span></span></code></pre></div><p>Okay, fairly simple. A <code>UnitTest</code> calls its own <code>test</code> method to assert that
 something should be true. In this case we&rsquo;re doing a bunch of size tests on the
-platform type wrappers.</p>
-<h3 id=an-assertion>An assertion</h3>
-<p>Let&rsquo;s have a look at <code>test</code>. This is in <code>test.h</code>, in the definition of <code>UnitTest</code>:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kt>bool</span> <span class=nf>test</span><span class=p>(</span><span class=kt>bool</span> <span class=n>a</span><span class=p>,</span><span class=k>const</span> <span class=kt>char</span><span class=o>*</span> <span class=n>msg</span><span class=p>)</span> <span class=p>{</span>
-   <span class=n>dFetchAndAdd</span><span class=p>(</span> <span class=n>_testCount</span><span class=p>,</span> <span class=mi>1</span> <span class=p>);</span>
-   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>a</span><span class=p>)</span>
-      <span class=n>fail</span><span class=p>(</span><span class=n>msg</span><span class=p>);</span>
-   <span class=n>_lastTestResult</span> <span class=o>=</span> <span class=n>a</span><span class=p>;</span>
-   <span class=k>return</span> <span class=n>a</span><span class=p>;</span>
-<span class=p>}</span>
-</code></pre></div><p>Ooh. That&rsquo;s interesting. What&rsquo;s <code>dFetchAndAdd</code>? Apparently it lives in
+platform type wrappers.</p><h3 id=an-assertion>An assertion</h3><p>Let&rsquo;s have a look at <code>test</code>. This is in <code>test.h</code>, in the definition of <code>UnitTest</code>:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>bool</span> <span class=nf>test</span><span class=p>(</span><span class=kt>bool</span> <span class=n>a</span><span class=p>,</span><span class=k>const</span> <span class=kt>char</span><span class=o>*</span> <span class=n>msg</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=n>dFetchAndAdd</span><span class=p>(</span> <span class=n>_testCount</span><span class=p>,</span> <span class=mi>1</span> <span class=p>);</span>
+</span></span><span class=line><span class=cl>   <span class=k>if</span> <span class=p>(</span><span class=o>!</span><span class=n>a</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>      <span class=n>fail</span><span class=p>(</span><span class=n>msg</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>   <span class=n>_lastTestResult</span> <span class=o>=</span> <span class=n>a</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>   <span class=k>return</span> <span class=n>a</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Ooh. That&rsquo;s interesting. What&rsquo;s <code>dFetchAndAdd</code>? Apparently it lives in
 <code>platform/platformIntrinsics.visualc.h</code> which sounds platform-specific, but isn&rsquo;t
-in <code>platformWin32/</code> for some reason.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=kr>inline</span> <span class=kt>void</span> <span class=nf>dFetchAndAdd</span><span class=p>(</span> <span class=k>volatile</span> <span class=n>S32</span><span class=o>&amp;</span> <span class=n>ref</span><span class=p>,</span> <span class=n>S32</span> <span class=n>val</span> <span class=p>)</span>
-<span class=p>{</span>
-   <span class=n>_InterlockedExchangeAdd</span><span class=p>(</span> <span class=p>(</span> <span class=k>volatile</span> <span class=kt>long</span><span class=o>*</span> <span class=p>)</span> <span class=o>&amp;</span><span class=n>ref</span><span class=p>,</span> <span class=n>val</span> <span class=p>);</span>
-<span class=p>}</span>
-</code></pre></div><p>Okay, and <code>_InterlockedExchangeAdd</code> is some Windows API function I think. I&rsquo;m
+in <code>platformWin32/</code> for some reason.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kr>inline</span> <span class=kt>void</span> <span class=nf>dFetchAndAdd</span><span class=p>(</span> <span class=k>volatile</span> <span class=n>S32</span><span class=o>&amp;</span> <span class=n>ref</span><span class=p>,</span> <span class=n>S32</span> <span class=n>val</span> <span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=n>_InterlockedExchangeAdd</span><span class=p>(</span> <span class=p>(</span> <span class=k>volatile</span> <span class=kt>long</span><span class=o>*</span> <span class=p>)</span> <span class=o>&amp;</span><span class=n>ref</span><span class=p>,</span> <span class=n>val</span> <span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></div><p>Okay, and <code>_InterlockedExchangeAdd</code> is some Windows API function I think. I&rsquo;m
 going to intuit that it&rsquo;s for atomically incrementing a memory location, so we
-avoid race conditions. Also, this comment is pertinent:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=c1>// NOTE: These do not return the pre-add value because
-</span><span class=c1>// not all platforms (damn you OSX) can do that.
-</span></code></pre></div><p>Interesting. Wait, can we not do that ourselves? Since we know the pre-add value?
+avoid race conditions. Also, this comment is pertinent:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=c1>// NOTE: These do not return the pre-add value because
+</span></span></span><span class=line><span class=cl><span class=c1>// not all platforms (damn you OSX) can do that.
+</span></span></span></code></pre></div><p>Interesting. Wait, can we not do that ourselves? Since we know the pre-add value?
 Oh no, of course we don&rsquo;t, because this is a volatile situation where the <em>actual</em>
 value before we add to it may be different to the one we read on the line before
-we write. For example, if we were to do this:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp>   <span class=kt>long</span> <span class=n>old</span> <span class=o>=</span> <span class=n>ref</span><span class=p>;</span>
-   <span class=n>_InterlockedExchangeAdd</span><span class=p>(</span> <span class=p>(</span> <span class=k>volatile</span> <span class=kt>long</span><span class=o>*</span> <span class=p>)</span> <span class=o>&amp;</span><span class=n>ref</span><span class=p>,</span> <span class=n>val</span> <span class=p>);</span>
-   <span class=k>return</span> <span class=n>old</span><span class=p>;</span>
-</code></pre></div><p>The value of memory in <code>ref</code> may change between the first and second line. Duh.
+we write. For example, if we were to do this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>   <span class=kt>long</span> <span class=n>old</span> <span class=o>=</span> <span class=n>ref</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>   <span class=n>_InterlockedExchangeAdd</span><span class=p>(</span> <span class=p>(</span> <span class=k>volatile</span> <span class=kt>long</span><span class=o>*</span> <span class=p>)</span> <span class=o>&amp;</span><span class=n>ref</span><span class=p>,</span> <span class=n>val</span> <span class=p>);</span>
+</span></span><span class=line><span class=cl>   <span class=k>return</span> <span class=n>old</span><span class=p>;</span>
+</span></span></code></pre></div><p>The value of memory in <code>ref</code> may change between the first and second line. Duh.
 So we need to rely on platform intrinsic methods to give us that information, but
-apparently we can&rsquo;t rely on <em>all</em> platform&rsquo;s intrinsics to do that. Shame.</p>
-<p>Okay, wait wait. So what this means is that unit tests are potentially
+apparently we can&rsquo;t rely on <em>all</em> platform&rsquo;s intrinsics to do that. Shame.</p><p>Okay, wait wait. So what this means is that unit tests are potentially
 multithreaded? Within a single test, I mean, because each <code>UnitTest</code> object is
 self-contained. But one <code>UnitTest</code> could spawn multiple threads that each call
-<code>test</code> and hopefully that will result in a consistent result. Cool.</p>
-<h3 id=another-example>Another example</h3>
-<p>I&rsquo;m going to try to find a test that does some setup and teardown, or uses a
+<code>test</code> and hopefully that will result in a consistent result. Cool.</p><h3 id=another-example>Another example</h3><p>I&rsquo;m going to try to find a test that does some setup and teardown, or uses a
 fixture in some way. That seems helpful. Oh, but I&rsquo;ve found this instead in
-<code>platformWin32/winWindow.cpp</code>:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>S32</span> <span class=n>PASCAL</span> <span class=nf>WinMain</span><span class=p>(</span> <span class=n>HINSTANCE</span> <span class=n>hInstance</span><span class=p>,</span> <span class=n>HINSTANCE</span><span class=p>,</span> <span class=n>LPSTR</span> <span class=n>lpszCmdLine</span><span class=p>,</span> <span class=n>S32</span><span class=p>)</span>
-<span class=p>{</span>
-<span class=cp>#if 0</span><span class=c>
-</span><span class=c>   // Run a unit test.
-</span><span class=c>   StandardMainLoop::initCore();
-</span><span class=c>   UnitTesting::TestRun tr;
-</span><span class=c>   tr.test(&#34;Platform&#34;, true);
-</span><span class=c></span><span class=cp>#else
-</span></code></pre></div><p>Ha ha. Okay, a unit test example, that&rsquo;s what I was looking for. Yes. Hmm. Ooh.
+<code>platformWin32/winWindow.cpp</code>:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>S32</span> <span class=n>PASCAL</span> <span class=nf>WinMain</span><span class=p>(</span> <span class=n>HINSTANCE</span> <span class=n>hInstance</span><span class=p>,</span> <span class=n>HINSTANCE</span><span class=p>,</span> <span class=n>LPSTR</span> <span class=n>lpszCmdLine</span><span class=p>,</span> <span class=n>S32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=cp>#if 0</span><span class=c>
+</span></span></span><span class=line><span class=cl><span class=c>   // Run a unit test.
+</span></span></span><span class=line><span class=cl><span class=c>   StandardMainLoop::initCore();
+</span></span></span><span class=line><span class=cl><span class=c>   UnitTesting::TestRun tr;
+</span></span></span><span class=line><span class=cl><span class=c>   tr.test(&#34;Platform&#34;, true);
+</span></span></span><span class=line><span class=cl><span class=c></span><span class=cp>#else
+</span></span></span></code></pre></div><p>Ha ha. Okay, a unit test example, that&rsquo;s what I was looking for. Yes. Hmm. Ooh.
 Doing a &lsquo;find all references&rsquo; on <code>UnitTest</code> turns up a bunch of results in the
 Google Test library files. Whoops. I suspect nobody is really using fixtures.
-Here&rsquo;s a test that stores some instance data:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>CreateUnitTest</span><span class=p>(</span><span class=n>TestingProcess</span><span class=p>,</span> <span class=s>&#34;Journal/Process&#34;</span><span class=p>)</span>
-<span class=p>{</span>
-   <span class=c1>// How many ticks remaining?
-</span><span class=c1></span>   <span class=n>U32</span> <span class=n>_remainingTicks</span><span class=p>;</span>
-
-   <span class=kt>void</span> <span class=nf>process</span><span class=p>()</span>
-   <span class=p>{</span>
-      <span class=p>...</span>
-      <span class=n>_remainingTicks</span><span class=o>--</span><span class=p>;</span>
-   <span class=p>}</span>
-
-   <span class=kt>void</span> <span class=nf>run</span><span class=p>()</span>
-   <span class=p>{</span>
-      <span class=c1>// We&#39;ll run 30 ticks, then quit.
-</span><span class=c1></span>      <span class=n>_remainingTicks</span> <span class=o>=</span> <span class=mi>30</span><span class=p>;</span>
-
-      <span class=c1>// Register with the process list.
-</span><span class=c1></span>      <span class=n>Process</span><span class=o>::</span><span class=n>notify</span><span class=p>(</span><span class=k>this</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>TestingProcess</span><span class=o>::</span><span class=n>process</span><span class=p>);</span>
-</code></pre></div><p>Okay, fair enough. I assume that if you defined a constructor (in this case,
+Here&rsquo;s a test that stores some instance data:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>CreateUnitTest</span><span class=p>(</span><span class=n>TestingProcess</span><span class=p>,</span> <span class=s>&#34;Journal/Process&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>   <span class=c1>// How many ticks remaining?
+</span></span></span><span class=line><span class=cl><span class=c1></span>   <span class=n>U32</span> <span class=n>_remainingTicks</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=kt>void</span> <span class=nf>process</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>   <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=p>...</span>
+</span></span><span class=line><span class=cl>      <span class=n>_remainingTicks</span><span class=o>--</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>   <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>   <span class=kt>void</span> <span class=nf>run</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>   <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=c1>// We&#39;ll run 30 ticks, then quit.
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=n>_remainingTicks</span> <span class=o>=</span> <span class=mi>30</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>      <span class=c1>// Register with the process list.
+</span></span></span><span class=line><span class=cl><span class=c1></span>      <span class=n>Process</span><span class=o>::</span><span class=n>notify</span><span class=p>(</span><span class=k>this</span><span class=p>,</span> <span class=o>&amp;</span><span class=n>TestingProcess</span><span class=o>::</span><span class=n>process</span><span class=p>);</span>
+</span></span></code></pre></div><p>Okay, fair enough. I assume that if you defined a constructor (in this case,
 <code>TestingProcess()</code>) then it would be called in the appropriate place? I.e. when
-the test instance is created way back up in <code>TestRun::test</code> (the private one).</p>
-<h2 id=existing-tests>Existing tests</h2>
-<p>Okay, that&rsquo;s cool. So what sort of coverage do we have with tests? I do a &lsquo;find
-all references&rsquo; on <code>CreateUnitTest</code>. This should be fun. 153 results found. Hm.</p>
-<p>First up are some tests for the unused component system. Then some miscellaneous
+the test instance is created way back up in <code>TestRun::test</code> (the private one).</p><h2 id=existing-tests>Existing tests</h2><p>Okay, that&rsquo;s cool. So what sort of coverage do we have with tests? I do a &lsquo;find
+all references&rsquo; on <code>CreateUnitTest</code>. This should be fun. 153 results found. Hm.</p><p>First up are some tests for the unused component system. Then some miscellaneous
 ones, the basic type tests I listed some of above, and then a very interesting
-test: <code>TestDefaultConstruction</code> in <code>unit/tests/testDefaultConstruction.cpp</code>.</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp>    <span class=k>for</span><span class=p>(</span> <span class=n>AbstractClassRep</span><span class=o>*</span> <span class=n>classRep</span> <span class=o>=</span> <span class=n>AbstractClassRep</span><span class=o>::</span><span class=n>getClassList</span><span class=p>();</span>
-         <span class=n>classRep</span> <span class=o>!=</span> <span class=nb>NULL</span><span class=p>;</span>
-         <span class=n>classRep</span> <span class=o>=</span> <span class=n>classRep</span><span class=o>-&gt;</span><span class=n>getNextClass</span><span class=p>()</span> <span class=p>)</span>
-    <span class=p>{</span>
-       <span class=c1>// Create object.
-</span><span class=c1></span>       <span class=n>ConsoleObject</span><span class=o>*</span> <span class=n>object</span> <span class=o>=</span> <span class=n>classRep</span><span class=o>-&gt;</span><span class=n>create</span><span class=p>();</span>
-       <span class=n>test</span><span class=p>(</span> <span class=n>object</span><span class=p>,</span> <span class=n>avar</span><span class=p>(</span> <span class=s>&#34;AbstractClassRep::create failed for class &#39;%s&#39;&#34;</span><span class=p>,</span> <span class=n>classRep</span><span class=o>-&gt;</span><span class=n>getClassName</span><span class=p>()</span> <span class=p>)</span> <span class=p>);</span>
-       <span class=k>if</span><span class=p>(</span> <span class=o>!</span><span class=n>object</span> <span class=p>)</span>
-          <span class=k>continue</span><span class=p>;</span>
-</code></pre></div><p>This iterates over every class exposed to the console (i.e. every class you can
+test: <code>TestDefaultConstruction</code> in <code>unit/tests/testDefaultConstruction.cpp</code>.</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>    <span class=k>for</span><span class=p>(</span> <span class=n>AbstractClassRep</span><span class=o>*</span> <span class=n>classRep</span> <span class=o>=</span> <span class=n>AbstractClassRep</span><span class=o>::</span><span class=n>getClassList</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>         <span class=n>classRep</span> <span class=o>!=</span> <span class=nb>NULL</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>         <span class=n>classRep</span> <span class=o>=</span> <span class=n>classRep</span><span class=o>-&gt;</span><span class=n>getNextClass</span><span class=p>()</span> <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span>
+</span></span><span class=line><span class=cl>       <span class=c1>// Create object.
+</span></span></span><span class=line><span class=cl><span class=c1></span>       <span class=n>ConsoleObject</span><span class=o>*</span> <span class=n>object</span> <span class=o>=</span> <span class=n>classRep</span><span class=o>-&gt;</span><span class=n>create</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>test</span><span class=p>(</span> <span class=n>object</span><span class=p>,</span> <span class=n>avar</span><span class=p>(</span> <span class=s>&#34;AbstractClassRep::create failed for class &#39;%s&#39;&#34;</span><span class=p>,</span> <span class=n>classRep</span><span class=o>-&gt;</span><span class=n>getClassName</span><span class=p>()</span> <span class=p>)</span> <span class=p>);</span>
+</span></span><span class=line><span class=cl>       <span class=k>if</span><span class=p>(</span> <span class=o>!</span><span class=n>object</span> <span class=p>)</span>
+</span></span><span class=line><span class=cl>          <span class=k>continue</span><span class=p>;</span>
+</span></span></code></pre></div><p>This iterates over every class exposed to the console (i.e. every class you can
 use from scripts) and tries to create one. This is interesting because it indicates
 that every object exposed to scripts should be valid with no members. I think.
-Let&rsquo;s see what <code>create</code> does, and hopefully verify this.</p>
-<p>There are two subclasses of <code>AbstractClassRep</code> - the <code>Concrete</code> variety and the
-<code>Dynamic</code> variety. They both do the same thing:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=c1>/// Wrap constructor.
-</span><span class=c1></span><span class=n>ConsoleObject</span><span class=o>*</span> <span class=nf>create</span><span class=p>()</span> <span class=k>const</span> <span class=p>{</span> <span class=k>return</span> <span class=k>new</span> <span class=n>T</span><span class=p>;</span> <span class=p>}</span>
-</code></pre></div><p>Okay, easy enough. And though it wont' matter, let&rsquo;s see which one is usual. My
+Let&rsquo;s see what <code>create</code> does, and hopefully verify this.</p><p>There are two subclasses of <code>AbstractClassRep</code> - the <code>Concrete</code> variety and the
+<code>Dynamic</code> variety. They both do the same thing:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=c1>/// Wrap constructor.
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>ConsoleObject</span><span class=o>*</span> <span class=nf>create</span><span class=p>()</span> <span class=k>const</span> <span class=p>{</span> <span class=k>return</span> <span class=k>new</span> <span class=n>T</span><span class=p>;</span> <span class=p>}</span>
+</span></span></code></pre></div><p>Okay, easy enough. And though it wont&rsquo; matter, let&rsquo;s see which one is usual. My
 bet is on <code>Concrete</code>. If we text search for <code>#define DECLARE_CONOBJECT</code> we get
-this:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=cp>#define DECLARE_CONOBJECT( className )                   \
-</span><span class=cp>   DECLARE_CLASS( className, Parent );                   \
-</span><span class=cp>   static S32 _smTypeId;                                 \
-</span><span class=cp>   static ConcreteClassRep&lt; className &gt; dynClassRep;     \
-</span><span class=cp>   static AbstractClassRep* getStaticClassRep();         \
-</span><span class=cp>   ...
-</span></code></pre></div><p>Okay, so things are mostly of the <code>Concrete</code> variety of class representation. If
+this:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=cp>#define DECLARE_CONOBJECT( className )                   \
+</span></span></span><span class=line><span class=cl><span class=cp>   DECLARE_CLASS( className, Parent );                   \
+</span></span></span><span class=line><span class=cl><span class=cp>   static S32 _smTypeId;                                 \
+</span></span></span><span class=line><span class=cl><span class=cp>   static ConcreteClassRep&lt; className &gt; dynClassRep;     \
+</span></span></span><span class=line><span class=cl><span class=cp>   static AbstractClassRep* getStaticClassRep();         \
+</span></span></span><span class=line><span class=cl><span class=cp>   ...
+</span></span></span></code></pre></div><p>Okay, so things are mostly of the <code>Concrete</code> variety of class representation. If
 you&rsquo;re confused about what all this machinery is for, I direct you to the comment
-in <code>console/consoleObject.h</code>:</p>
-<blockquote>
-<p>Many of Torque&rsquo;s subsystems, especially network, console, and sim,
+in <code>console/consoleObject.h</code>:</p><blockquote><p>Many of Torque&rsquo;s subsystems, especially network, console, and sim,
 require the ability to programatically instantiate classes. For instance,
 when objects are ghosted, the networking layer needs to be able to create
 an instance of the object on the client. When the console scripting
 language runtime encounters the &ldquo;new&rdquo; keyword, it has to be able to fill
-that request.</p>
-<p>Since standard C++ doesn&rsquo;t provide a function to create a new instance of
+that request.</p><p>Since standard C++ doesn&rsquo;t provide a function to create a new instance of
 an arbitrary class at runtime, one must be created. This is what
 AbstractClassRep and ConcreteClassRep are all about. They allow the registration
-and instantiation of arbitrary classes at runtime.</p>
-</blockquote>
-<p>Anyway, let&rsquo;s give this a shot. I&rsquo;m running Torque, opening the console and
-entering:</p>
-<div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=n>unitTest_runTests</span><span class=p>(</span><span class=s>&#34;Console/DefaultConstruction&#34;</span><span class=p>,</span> <span class=nb>true</span><span class=p>);</span>
-</code></pre></div><p>Ah. Aha. I see.</p>
-<pre><code>SFXSource::onAdd() - no description set on source 4148 ((null))
+and instantiation of arbitrary classes at runtime.</p></blockquote><p>Anyway, let&rsquo;s give this a shot. I&rsquo;m running Torque, opening the console and
+entering:</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>unitTest_runTests</span><span class=p>(</span><span class=s>&#34;Console/DefaultConstruction&#34;</span><span class=p>,</span> <span class=nb>true</span><span class=p>);</span>
+</span></span></code></pre></div><p>Ah. Aha. I see.</p><pre><code>SFXSource::onAdd() - no description set on source 4148 ((null))
 ** Failed: registerObject failed for object of class 'SFXSource'
 SFXSource::onAdd() - no description set on source 4149 ((null))
 ** Failed: registerObject failed for object of class 'SFXSound'
@@ -281,27 +199,15 @@ ShapeBase::onAdd - no datablock on shape 4505:Camera ((null))
 ** Failed: registerObject failed for object of class 'Camera'
 ShapeBase::onAdd - no datablock on shape 4507:AIPlayer ((null))
 ** Failed: registerObject failed for object of class 'AIPlayer'
-</code></pre>
-<p>And so on. Well that&rsquo;s amusing. I guess this test&mldr; isn&rsquo;t supposed to pass? I
+</code></pre><p>And so on. Well that&rsquo;s amusing. I guess this test&mldr; isn&rsquo;t supposed to pass? I
 guess it verifies that the engine doesn&rsquo;t, you know, crash or anything. But I&rsquo;m
 fairly certain that unit tests should be designed so that <em>passing them</em> means
-success, not just <em>not crashing</em> while running them.</p>
-<p>Okay. That&rsquo;s a slight diversion. Where were we?</p>
-<p>There are tests for files (one of which includes a 5 second sleep&mldr;), a smattering
+success, not just <em>not crashing</em> while running them.</p><p>Okay. That&rsquo;s a slight diversion. Where were we?</p><p>There are tests for files (one of which includes a 5 second sleep&mldr;), a smattering
 of maths tests, packet and networking tests (that call out to <code>garagegames.com</code>),
 some tests of utilities like <code>String</code> and the defunct component interface, lots
 of thread tests including stress tests, even more thread tests, tests for <code>Vector</code>,
 and interestingly some tests of the window manager. Oh, and of the zip filesystem.
 Hopefully they can help disambiguate whether T3D has zip filesystem support&mldr;
-Anyway, that&rsquo;s not an exhaustive list, but those are the major ones.</p>
-<h2 id=the-end>The end</h2>
-<p>I hope that was at least slightly illuminating, rather than just confusing. I also
+Anyway, that&rsquo;s not an exhaustive list, but those are the major ones.</p><h2 id=the-end>The end</h2><p>I hope that was at least slightly illuminating, rather than just confusing. I also
 apologise in retrospect for any attitude that crept into my analysis. I tried to
-keep it factual!</p>
-</div>
-<hr>
-<p class=site-subtitle>fin</p>
-</div>
-</div>
-</body>
-</html>
+keep it factual!</p></div><hr><p class=site-subtitle>fin</p></div></div></body></html>
