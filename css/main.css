@@ -256,6 +256,14 @@ a.seamless:hover {
   text-decoration: none;
 }
 
+a.home-link {
+  color: #444;
+}
+
+a.home-link:hover {
+  color: #444;
+}
+
 .post h2 {
   margin-top: 2rem;
 }
