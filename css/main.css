@@ -258,6 +258,7 @@ a.seamless:hover {
 
 a.home-link {
   color: #444;
+  text-decoration: underline;
 }
 
 a.home-link:hover {
